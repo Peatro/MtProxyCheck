@@ -1,38 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTProto Proxies</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTProto Proxy Access</title>
     <style>
         :root {
-            --bg: #0b1220;
-            --bg-elevated: rgba(16, 24, 40, 0.88);
-            --bg-card: rgba(15, 23, 42, 0.92);
+            --bg: #07111c;
+            --bg-soft: #0d1726;
+            --panel: rgba(13, 23, 38, 0.88);
+            --panel-strong: rgba(10, 18, 30, 0.96);
             --border: rgba(148, 163, 184, 0.16);
-            --text: #e5edf7;
-            --muted: #94a3b8;
-            --green: #22c55e;
-            --green-soft: rgba(34, 197, 94, 0.15);
-            --orange: #f59e0b;
-            --red: #ef4444;
-            --shadow: 0 20px 60px rgba(2, 6, 23, 0.55);
-            --radius: 22px;
+            --text: #e8f1fb;
+            --muted: #8fa3b8;
+            --accent: #22d3ee;
+            --accent-strong: #06b6d4;
+            --alive: #22c55e;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
         }
 
         * {
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
             margin: 0;
-            min-height: 100vh;
-            font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", sans-serif;
+            min-height: 100%;
+            font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
             color: var(--text);
             background:
-                radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 28%),
-                radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 22%),
-                linear-gradient(180deg, #0b1220 0%, #09101d 100%);
+                    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
+                    radial-gradient(circle at 85% 0%, rgba(34, 197, 94, 0.08), transparent 24%),
+                    linear-gradient(180deg, #07111c 0%, #09131f 100%);
         }
 
         body::before {
@@ -41,40 +45,40 @@
             inset: 0;
             pointer-events: none;
             background-image:
-                linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
-            background-size: 32px 32px;
+                    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 34px 34px;
             mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
         }
 
-        .shell {
-            width: min(1120px, calc(100% - 32px));
-            margin: 48px auto;
-            padding: 36px;
+        .page {
+            width: min(1160px, calc(100% - 28px));
+            margin: 28px auto;
+            padding: 28px;
             border: 1px solid var(--border);
-            border-radius: 30px;
-            background: var(--bg-elevated);
+            border-radius: 32px;
+            background: rgba(7, 17, 28, 0.72);
             box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
+            backdrop-filter: blur(16px);
         }
 
         .hero {
-            display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            align-items: flex-end;
-            margin-bottom: 28px;
+            display: grid;
+            grid-template-columns: 1.6fr 0.8fr;
+            gap: 22px;
+            align-items: end;
+            margin-bottom: 22px;
         }
 
         .eyebrow {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 7px 12px;
+            padding: 8px 12px;
             border-radius: 999px;
-            border: 1px solid rgba(34, 197, 94, 0.28);
-            background: var(--green-soft);
-            color: #b6f2c8;
+            background: rgba(34, 211, 238, 0.12);
+            border: 1px solid rgba(34, 211, 238, 0.22);
+            color: #a5f3fc;
             font-size: 12px;
             letter-spacing: 0.12em;
             text-transform: uppercase;
@@ -82,152 +86,201 @@
 
         h1 {
             margin: 14px 0 10px;
-            font-size: clamp(32px, 5vw, 56px);
-            line-height: 0.98;
+            font-size: clamp(34px, 5vw, 58px);
+            line-height: 0.96;
             letter-spacing: -0.04em;
         }
 
         .subtitle {
             margin: 0;
-            max-width: 680px;
             color: var(--muted);
-            font-size: 15px;
+            max-width: 760px;
             line-height: 1.7;
+            font-size: 15px;
         }
 
-        .meta {
-            min-width: 180px;
-            padding: 18px 20px;
+        .hero-stat {
+            padding: 20px 22px;
+            border-radius: 22px;
             border: 1px solid var(--border);
-            border-radius: 18px;
-            background: rgba(15, 23, 42, 0.74);
+            background: var(--panel);
+            min-height: 132px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .meta-label {
+        .hero-stat-label {
             color: var(--muted);
             font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.11em;
         }
 
-        .meta-value {
-            margin-top: 8px;
-            font-size: 28px;
+        .hero-stat-value {
+            font-size: 38px;
             font-weight: 700;
+            letter-spacing: -0.04em;
         }
 
-        .status-panel {
-            margin-bottom: 26px;
-            padding: 18px 20px;
-            border: 1px solid var(--border);
+        .hero-stat-note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .status-banner {
+            padding: 16px 18px;
+            margin-bottom: 22px;
             border-radius: 18px;
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border);
             color: var(--muted);
             font-size: 15px;
         }
 
-        .status-panel.error {
-            border-color: rgba(239, 68, 68, 0.32);
+        .status-banner.error {
             color: #fecaca;
-            background: rgba(127, 29, 29, 0.16);
+            background: rgba(127, 29, 29, 0.18);
+            border-color: rgba(239, 68, 68, 0.25);
         }
 
-        .grid {
+        .layout {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 18px;
+            grid-template-columns: 1.25fr 0.95fr;
+            gap: 22px;
         }
 
-        .card {
+        .section {
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border);
+            background: var(--panel);
+            padding: 22px;
             position: relative;
             overflow: hidden;
-            padding: 22px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%),
-                var(--bg-card);
-            box-shadow: 0 14px 36px rgba(2, 6, 23, 0.28);
-            transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
         }
 
-        .card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(34, 197, 94, 0.32);
-            box-shadow: 0 22px 46px rgba(2, 6, 23, 0.42);
-        }
-
-        .card::after {
+        .section::after {
             content: "";
             position: absolute;
-            inset: auto -30px -40px auto;
-            width: 140px;
-            height: 140px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(34, 197, 94, 0.18), transparent 68%);
+            right: -70px;
+            bottom: -80px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.12), transparent 70%);
             pointer-events: none;
         }
 
-        .card-top {
+        .section-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
+            align-items: end;
+            gap: 16px;
             margin-bottom: 18px;
         }
 
-        .host {
-            margin: 0 0 6px;
-            font-size: 22px;
-            line-height: 1.2;
+        .section-title {
+            margin: 0;
+            font-size: 24px;
             letter-spacing: -0.03em;
+        }
+
+        .section-note {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .section-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #a5f3fc;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            background: rgba(34, 211, 238, 0.08);
+            white-space: nowrap;
+        }
+
+        .featured-card {
+            padding: 22px;
+            border-radius: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background:
+                    linear-gradient(180deg, rgba(255,255,255,0.025), transparent 38%),
+                    var(--panel-strong);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+            transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+        }
+
+        .featured-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(34, 211, 238, 0.24);
+            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.3);
+        }
+
+        .proxy-topline {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: start;
+            margin-bottom: 18px;
+        }
+
+        .proxy-main {
+            min-width: 0;
+        }
+
+        .proxy-address {
+            margin: 0 0 8px;
+            font-size: clamp(24px, 3.5vw, 34px);
+            letter-spacing: -0.04em;
+            line-height: 1.05;
             word-break: break-word;
         }
 
-        .secret {
+        .proxy-caption {
             margin: 0;
             color: var(--muted);
             font-size: 13px;
         }
 
-        .badge {
+        .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 12px;
+            padding: 9px 12px;
             border-radius: 999px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            white-space: nowrap;
-            border: 1px solid transparent;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(148, 163, 184, 0.08);
+            color: #d8e3ef;
         }
 
-        .badge.alive {
-            color: #c7f9d5;
+        .status-badge.alive {
+            color: #d1fae5;
             background: rgba(34, 197, 94, 0.14);
             border-color: rgba(34, 197, 94, 0.24);
         }
 
-        .badge.other {
-            color: #cbd5e1;
-            background: rgba(148, 163, 184, 0.12);
-            border-color: rgba(148, 163, 184, 0.18);
-        }
-
         .stats {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
             margin-bottom: 18px;
         }
 
         .stat {
             padding: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.12);
             border-radius: 16px;
-            background: rgba(2, 6, 23, 0.24);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(255,255,255,0.02);
         }
 
         .stat-label {
@@ -242,7 +295,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 20px;
+            font-size: 21px;
             font-weight: 700;
         }
 
@@ -251,245 +304,596 @@
             height: 10px;
             border-radius: 50%;
             box-shadow: 0 0 12px currentColor;
+            flex: 0 0 auto;
         }
 
-        .latency-green {
-            color: var(--green);
+        .latency-good {
+            color: var(--alive);
         }
 
-        .latency-orange {
-            color: var(--orange);
+        .latency-medium {
+            color: var(--warn);
         }
 
-        .latency-red {
-            color: var(--red);
+        .latency-poor {
+            color: var(--danger);
         }
 
         .actions {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
         }
 
         .btn {
             appearance: none;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 14px;
-            padding: 12px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
             background: rgba(255, 255, 255, 0.03);
             color: var(--text);
-            font: inherit;
-            font-size: 13px;
-            font-weight: 600;
+            border-radius: 14px;
+            padding: 13px 14px;
             cursor: pointer;
-            transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
             text-align: center;
             text-decoration: none;
         }
 
         .btn:hover {
             transform: translateY(-1px);
-            border-color: rgba(34, 197, 94, 0.32);
-            background: rgba(34, 197, 94, 0.09);
+            border-color: rgba(34, 211, 238, 0.26);
+            background: rgba(34, 211, 238, 0.08);
         }
 
         .btn.primary {
-            background: linear-gradient(180deg, rgba(34, 197, 94, 0.24), rgba(22, 163, 74, 0.18));
-            border-color: rgba(34, 197, 94, 0.32);
+            background: linear-gradient(180deg, rgba(34, 211, 238, 0.2), rgba(6, 182, 212, 0.14));
+            border-color: rgba(34, 211, 238, 0.24);
+        }
+
+        .btn.secondary {
+            background: rgba(34, 197, 94, 0.08);
+            border-color: rgba(34, 197, 94, 0.18);
         }
 
         .btn:disabled {
-            opacity: 0.5;
+            opacity: 0.45;
             cursor: not-allowed;
             transform: none;
         }
 
-        @media (max-width: 760px) {
-            .shell {
-                width: min(100% - 20px, 1120px);
-                margin: 20px auto;
-                padding: 22px;
+        .btn.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .desktop-helper {
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .list {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .proxy-row {
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr 0.8fr;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            background: rgba(255,255,255,0.02);
+            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        }
+
+        .proxy-row:hover {
+            transform: translateY(-1px);
+            border-color: rgba(34, 211, 238, 0.18);
+            background: rgba(34, 211, 238, 0.04);
+        }
+
+        .proxy-row-main {
+            min-width: 0;
+        }
+
+        .proxy-row-address {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .proxy-row-caption {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .proxy-row-metric {
+            text-align: right;
+        }
+
+        .proxy-row-label {
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .proxy-row-value {
+            font-size: 15px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .mobile-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .mobile-note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .empty-panel {
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px dashed rgba(148, 163, 184, 0.18);
+            color: var(--muted);
+            text-align: center;
+            font-size: 15px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 22px;
+            transform: translateX(-50%) translateY(20px);
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: rgba(9, 17, 29, 0.94);
+            border: 1px solid rgba(34, 211, 238, 0.18);
+            color: var(--text);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 180ms ease, transform 180ms ease;
+            z-index: 50;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 980px) {
+            .hero,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-stat {
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .page {
+                width: min(100% - 16px, 1160px);
+                margin: 12px auto;
+                padding: 16px;
                 border-radius: 24px;
             }
 
-            .hero {
-                flex-direction: column;
-                align-items: stretch;
+            .section {
+                padding: 18px;
             }
 
-            .actions {
+            .stats,
+            .actions,
+            .mobile-actions {
                 grid-template-columns: 1fr;
+            }
+
+            .proxy-row {
+                grid-template-columns: 1fr;
+            }
+
+            .proxy-row-metric {
+                text-align: left;
+            }
+
+            .proxy-row-value {
+                justify-content: flex-start;
+            }
+
+            .proxy-topline,
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
 </head>
 <body>
-<main class="shell">
+<main class="page">
     <section class="hero">
         <div>
-            <div class="eyebrow">Live Feed</div>
-            <h1>MTProto Proxies</h1>
+            <div class="eyebrow">Telegram MTProto Access</div>
+            <h1>Fast Proxy Switching for Desktop and Mobile</h1>
             <p class="subtitle">
-                Sorted by the backend. Fast access cards with Telegram deep links, web links and one-click copy.
+                Desktop mode is optimized for one-by-one manual switching when you want to test the current best route.
+                Mobile mode gives you a compact proxy pack for faster copy and import workflows inside Telegram.
             </p>
         </div>
-        <div class="meta">
-            <div class="meta-label">Available</div>
-            <div class="meta-value" id="proxy-count">0</div>
-        </div>
+        <aside class="hero-stat">
+            <div class="hero-stat-label">Loaded Proxies</div>
+            <div class="hero-stat-value" id="proxyCount">0</div>
+            <div class="hero-stat-note">Fetched once from the backend and kept in memory for smooth local switching.</div>
+        </aside>
     </section>
 
-    <section id="status" class="status-panel">Loading proxies...</section>
-    <section id="proxy-grid" class="grid" aria-live="polite"></section>
+    <section id="statusBanner" class="status-banner">Loading proxies...</section>
+
+    <section class="layout">
+        <section class="section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Desktop Mode</h2>
+                    <p class="section-note">Best for manual testing and switching one proxy at a time without another backend request.</p>
+                </div>
+                <div class="section-tag" id="desktopPosition">Proxy 0 / 0</div>
+            </div>
+
+            <div id="desktopContent">
+                <div class="empty-panel">Loading featured proxy...</div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Mobile Mode</h2>
+                    <p class="section-note">Designed for mobile Telegram usage where copying a small proxy pack is often faster.</p>
+                </div>
+                <div class="section-tag" id="mobilePackSize">Pack: 0</div>
+            </div>
+
+            <div id="mobileContent">
+                <div class="empty-panel">Preparing proxy pack preview...</div>
+            </div>
+        </section>
+    </section>
 </main>
 
+<div id="toast" class="toast"></div>
+
 <script>
-    const API_URL = "http://localhost:8080/api/proxies/best";
-    const statusNode = document.getElementById("status");
-    const gridNode = document.getElementById("proxy-grid");
-    const countNode = document.getElementById("proxy-count");
+    const API_URL = "/api/proxies/best";
+    const MOBILE_PREVIEW_LIMIT = 8;
+
+    const state = {
+        proxies: [],
+        currentIndex: 0
+    };
+
+    const proxyCountNode = document.getElementById("proxyCount");
+    const statusBannerNode = document.getElementById("statusBanner");
+    const desktopContentNode = document.getElementById("desktopContent");
+    const mobileContentNode = document.getElementById("mobileContent");
+    const desktopPositionNode = document.getElementById("desktopPosition");
+    const mobilePackSizeNode = document.getElementById("mobilePackSize");
+    const toastNode = document.getElementById("toast");
+
+    let toastTimer = null;
+
+    function createEmptyPanel(message) {
+        return `<div class="empty-panel">${escapeHtml(message)}</div>`;
+    }
 
     function escapeHtml(value) {
         return String(value ?? "")
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;")
-            .replaceAll("\"", "&quot;")
+            .replaceAll('"', "&quot;")
             .replaceAll("'", "&#39;");
     }
 
-    function latencyClass(latency) {
-        if (latency == null) {
-            return "latency-orange";
+    function latencyTone(latency) {
+        if (latency == null || latency < 0) {
+            return "latency-medium";
         }
         if (latency < 100) {
-            return "latency-green";
+            return "latency-good";
         }
         if (latency <= 300) {
-            return "latency-orange";
+            return "latency-medium";
         }
-        return "latency-red";
+        return "latency-poor";
     }
 
-    function renderStatus(message, isError = false) {
-        statusNode.textContent = message;
-        statusNode.classList.toggle("error", isError);
+    function setStatus(message, isError = false) {
+        statusBannerNode.textContent = message;
+        statusBannerNode.classList.toggle("error", isError);
     }
 
-    function proxyCard(proxy) {
-        const hostPort = `${proxy.host}:${proxy.port}`;
-        const score = proxy.score ?? "N/A";
-        const latency = proxy.lastLatencyMs ?? "N/A";
-        const status = proxy.status ?? "UNKNOWN";
-        const badgeClass = status === "ALIVE" ? "alive" : "other";
-        const latencyTone = latencyClass(proxy.lastLatencyMs);
-        const secretPreview = proxy.secret ? `secret: ${proxy.secret}` : "secret unavailable";
+    function showToast(message) {
+        toastNode.textContent = message;
+        toastNode.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toastNode.classList.remove("show");
+        }, 1800);
+    }
 
-        return `
-            <article class="card">
-                <div class="card-top">
-                    <div>
-                        <h2 class="host">${escapeHtml(hostPort)}</h2>
-                        <p class="secret">${escapeHtml(secretPreview)}</p>
-                    </div>
-                    <span class="badge ${badgeClass}">${escapeHtml(status)}</span>
-                </div>
+    function normalizeProxy(rawProxy) {
+        return {
+            id: rawProxy?.id ?? null,
+            host: String(rawProxy?.host ?? ""),
+            port: rawProxy?.port ?? null,
+            status: String(rawProxy?.status ?? "UNKNOWN"),
+            score: rawProxy?.score ?? null,
+            lastLatencyMs: rawProxy?.lastLatencyMs ?? null,
+            telegramDeepLink: rawProxy?.telegramDeepLink ?? "",
+            telegramWebLink: rawProxy?.telegramWebLink ?? ""
+        };
+    }
 
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-label">Score</div>
-                        <div class="stat-value">${escapeHtml(score)}</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Latency</div>
-                        <div class="stat-value ${latencyTone}">
-                            <span class="latency-dot"></span>
-                            <span>${escapeHtml(latency)} ms</span>
-                        </div>
-                    </div>
-                </div>
+    function setProxyData(proxies) {
+        state.proxies = proxies.map(normalizeProxy).filter(proxy => proxy.host && proxy.port != null);
+        state.currentIndex = 0;
+    }
 
-                <div class="actions">
-                    <a class="btn primary" href="${escapeHtml(proxy.telegramDeepLink || "#")}">Open in Telegram</a>
-                    <a class="btn" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer">Open via Web</a>
-                    <button class="btn copy-btn" type="button" data-link="${escapeHtml(proxy.telegramDeepLink || "")}">Copy</button>
+    function resetUi(message) {
+        proxyCountNode.textContent = "0";
+        desktopPositionNode.textContent = "Proxy 0 / 0";
+        mobilePackSizeNode.textContent = "Pack: 0";
+        desktopContentNode.innerHTML = createEmptyPanel(message);
+        mobileContentNode.innerHTML = createEmptyPanel(message);
+    }
+
+    async function copyText(text) {
+        if (!text) {
+            throw new Error("Nothing to copy");
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        const ok = document.execCommand("copy");
+        textarea.remove();
+
+        if (!ok) {
+            throw new Error("Copy failed");
+        }
+    }
+
+    function getCurrentProxy() {
+        return state.proxies[state.currentIndex] || null;
+    }
+
+    function getMobilePackProxies() {
+        return state.proxies.slice(0, MOBILE_PREVIEW_LIMIT);
+    }
+
+    function formatLatency(latency) {
+        return latency == null || latency < 0 ? "N/A" : `${latency} ms`;
+    }
+
+    function actionHref(link) {
+        return link || "#";
+    }
+
+    function buildLinkPack(proxies, key) {
+        return proxies
+            .map(proxy => proxy[key])
+            .filter(Boolean)
+            .join("\n");
+    }
+
+    function renderDesktop() {
+        const total = state.proxies.length;
+        const proxy = getCurrentProxy();
+
+        desktopPositionNode.textContent = `Proxy ${total ? state.currentIndex + 1 : 0} / ${total}`;
+
+        if (!proxy) {
+            desktopContentNode.innerHTML = createEmptyPanel("No proxies available for desktop mode.");
+            return;
+        }
+
+        const badgeClass = proxy.status === "ALIVE" ? "status-badge alive" : "status-badge";
+        const latencyClass = latencyTone(proxy.lastLatencyMs);
+        const hasNext = state.currentIndex < total - 1;
+        const hasDeepLink = Boolean(proxy.telegramDeepLink);
+        const hasWebLink = Boolean(proxy.telegramWebLink);
+
+        desktopContentNode.innerHTML = `
+          <article class="featured-card">
+            <div class="proxy-topline">
+              <div class="proxy-main">
+                <h3 class="proxy-address">${escapeHtml(proxy.host)}:${escapeHtml(proxy.port)}</h3>
+                <p class="proxy-caption">Optimized for desktop and manual proxy switching.</p>
+              </div>
+              <div class="${badgeClass}">${escapeHtml(proxy.status || "UNKNOWN")}</div>
+            </div>
+
+            <div class="stats">
+              <div class="stat">
+                <div class="stat-label">Score</div>
+                <div class="stat-value">${escapeHtml(proxy.score ?? "N/A")}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Latency</div>
+                <div class="stat-value ${latencyClass}">
+                  <span class="latency-dot"></span>
+                  <span>${escapeHtml(formatLatency(proxy.lastLatencyMs))}</span>
                 </div>
-            </article>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Status</div>
+                <div class="stat-value">${escapeHtml(proxy.status || "UNKNOWN")}</div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <a class="btn primary ${hasDeepLink ? "" : "disabled"}" href="${escapeHtml(actionHref(proxy.telegramDeepLink))}" ${hasDeepLink ? "" : 'aria-disabled="true" tabindex="-1"'}>Open in Telegram</a>
+              <a class="btn ${hasWebLink ? "" : "disabled"}" href="${escapeHtml(actionHref(proxy.telegramWebLink))}" ${hasWebLink ? 'target="_blank" rel="noreferrer"' : 'aria-disabled="true" tabindex="-1"'}>Open via Web</a>
+              <button class="btn" id="copyDesktopLinkBtn" type="button" ${hasDeepLink ? "" : "disabled"}>Copy Link</button>
+              <button class="btn secondary" id="nextProxyBtn" type="button" ${hasNext ? "" : "disabled"}>${hasNext ? "Try Next Proxy" : "No More Proxies"}</button>
+            </div>
+
+            <div class="desktop-helper">
+              Desktop mode works best when you test one route at a time and move to the next candidate only if the current proxy does not behave well.
+            </div>
+          </article>
         `;
-    }
 
-    async function copyText(value) {
-        if (!value) {
-            return false;
-        }
+        document.getElementById("copyDesktopLinkBtn").addEventListener("click", async () => {
+            try {
+                await copyText(proxy.telegramDeepLink);
+                showToast("Telegram link copied");
+            } catch (error) {
+                showToast("Copy failed");
+            }
+        });
 
-        if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(value);
-            return true;
-        }
-
-        const temp = document.createElement("textarea");
-        temp.value = value;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        temp.remove();
-        return true;
-    }
-
-    function bindCopyButtons() {
-        document.querySelectorAll(".copy-btn").forEach((button) => {
-            button.addEventListener("click", async () => {
-                const originalText = button.textContent;
-                const link = button.dataset.link;
-
-                try {
-                    await copyText(link);
-                    button.textContent = "Copied";
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 1400);
-                } catch (error) {
-                    button.textContent = "Copy failed";
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                    }, 1600);
-                }
+        const nextProxyBtn = document.getElementById("nextProxyBtn");
+        if (nextProxyBtn && hasNext) {
+            nextProxyBtn.addEventListener("click", () => {
+                state.currentIndex += 1;
+                renderDesktop();
+                showToast(`Switched to proxy ${state.currentIndex + 1}`);
             });
+        }
+    }
+
+    function renderMobile() {
+        const packProxies = getMobilePackProxies();
+        mobilePackSizeNode.textContent = `Pack: ${packProxies.length}`;
+
+        if (!packProxies.length) {
+            mobileContentNode.innerHTML = createEmptyPanel("No proxies available for mobile pack generation.");
+            return;
+        }
+
+        const rows = packProxies.map(proxy => {
+            const latencyClass = latencyTone(proxy.lastLatencyMs);
+            return `
+            <div class="proxy-row">
+              <div class="proxy-row-main">
+                <div class="proxy-row-address">${escapeHtml(proxy.host)}:${escapeHtml(proxy.port)}</div>
+                <div class="proxy-row-caption">${escapeHtml(proxy.status || "UNKNOWN")}</div>
+              </div>
+              <div class="proxy-row-metric">
+                <div class="proxy-row-label">Score</div>
+                <div class="proxy-row-value">${escapeHtml(proxy.score ?? "N/A")}</div>
+              </div>
+              <div class="proxy-row-metric">
+                <div class="proxy-row-label">Latency</div>
+                <div class="proxy-row-value ${latencyClass}">
+                  <span class="latency-dot"></span>
+                  <span>${escapeHtml(formatLatency(proxy.lastLatencyMs))}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        mobileContentNode.innerHTML = `
+          <div class="list">${rows}</div>
+          <div class="mobile-actions">
+            <button class="btn primary" id="copyProxyPackBtn" type="button">Copy Proxy Pack</button>
+            <button class="btn" id="copyWebPackBtn" type="button">Copy Web Links Pack</button>
+          </div>
+          <div class="mobile-note">
+            This pack is intended for mobile Telegram copy, import, and quick retry workflows. Each copied line is a ready-to-use link.
+          </div>
+        `;
+
+        document.getElementById("copyProxyPackBtn").addEventListener("click", async () => {
+            try {
+                const pack = buildLinkPack(packProxies, "telegramDeepLink");
+                await copyText(pack);
+                showToast("Proxy pack copied");
+            } catch (error) {
+                showToast("Copy failed");
+            }
+        });
+
+        document.getElementById("copyWebPackBtn").addEventListener("click", async () => {
+            try {
+                const pack = buildLinkPack(packProxies, "telegramWebLink");
+                await copyText(pack);
+                showToast("Web links pack copied");
+            } catch (error) {
+                showToast("Copy failed");
+            }
         });
     }
 
+    function renderAll() {
+        proxyCountNode.textContent = String(state.proxies.length);
+        renderDesktop();
+        renderMobile();
+    }
+
     async function loadProxies() {
-        renderStatus("Loading proxies...");
+        setStatus("Loading proxies...");
 
         try {
             const response = await fetch(API_URL, {
-                headers: {
-                    "Accept": "application/json"
-                }
+                headers: { "Accept": "application/json" }
             });
 
             if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            const proxies = await response.json();
+            const data = await response.json();
 
-            if (!Array.isArray(proxies) || proxies.length === 0) {
-                countNode.textContent = "0";
-                gridNode.innerHTML = "";
-                renderStatus("No proxies available");
+            if (!Array.isArray(data) || data.length === 0) {
+                setProxyData([]);
+                resetUi("No proxies available.");
+                setStatus("No proxies available");
                 return;
             }
 
-            countNode.textContent = String(proxies.length);
-            gridNode.innerHTML = proxies.map(proxyCard).join("");
-            renderStatus(`Loaded ${proxies.length} proxy cards`);
-            bindCopyButtons();
+            setProxyData(data);
+            renderAll();
+            setStatus(`Loaded ${state.proxies.length} proxies from backend`);
         } catch (error) {
-            countNode.textContent = "0";
-            gridNode.innerHTML = "";
-            renderStatus("Failed to load proxies. Check that the backend is running on http://localhost:8080.", true);
+            setProxyData([]);
+            resetUi("Failed to load proxy data.");
+            setStatus("Failed to load proxies. Make sure the backend is reachable.", true);
             console.error(error);
         }
     }

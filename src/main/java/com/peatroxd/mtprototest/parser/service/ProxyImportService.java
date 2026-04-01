@@ -22,7 +22,11 @@ public class ProxyImportService {
 
     public void importAll() {
         for (ProxySource source : proxySources) {
-            importFromSource(source);
+            try {
+                importFromSource(source);
+            } catch (Exception e) {
+                log.error("Import failed for source='{}': {}", source.sourceName(), e.getMessage(), e);
+            }
         }
     }
 
@@ -33,38 +37,13 @@ public class ProxyImportService {
         int skipped = 0;
 
         for (RawProxy rawProxy : rawProxies) {
-            var normalizedOpt = rawProxyNormalizer.normalize(rawProxy);
-
-            if (normalizedOpt.isEmpty()) {
+            RawProxy normalized = rawProxyNormalizer.normalize(rawProxy).orElse(null);
+            if (normalized == null || exists(normalized)) {
                 skipped++;
                 continue;
             }
 
-            RawProxy normalized = normalizedOpt.get();
-
-            boolean exists = proxyRepository.findByHostAndPortAndSecretAndType(
-                    normalized.host(),
-                    normalized.port(),
-                    normalized.secret(),
-                    normalized.type()
-            ).isPresent();
-
-            if (exists) {
-                skipped++;
-                continue;
-            }
-
-            ProxyEntity entity = ProxyEntity.builder()
-                    .host(normalized.host())
-                    .port(normalized.port())
-                    .secret(normalized.secret())
-                    .type(normalized.type())
-                    .source(normalized.source())
-                    .status(ProxyStatus.NEW)
-                    .score(0)
-                    .build();
-
-            proxyRepository.save(entity);
+            proxyRepository.save(toNewEntity(normalized));
             imported++;
         }
 
@@ -75,5 +54,26 @@ public class ProxyImportService {
                 imported,
                 skipped
         );
+    }
+
+    private boolean exists(RawProxy proxy) {
+        return proxyRepository.findByHostAndPortAndSecretAndType(
+                proxy.host(),
+                proxy.port(),
+                proxy.secret(),
+                proxy.type()
+        ).isPresent();
+    }
+
+    private ProxyEntity toNewEntity(RawProxy proxy) {
+        return ProxyEntity.builder()
+                .host(proxy.host())
+                .port(proxy.port())
+                .secret(proxy.secret())
+                .type(proxy.type())
+                .source(proxy.source())
+                .status(ProxyStatus.NEW)
+                .score(0)
+                .build();
     }
 }
