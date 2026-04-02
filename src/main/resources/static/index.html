@@ -522,6 +522,30 @@
             margin-bottom: 12px;
         }
 
+        .feedback-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .feedback-note {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .btn.feedback-positive {
+            background: rgba(34, 197, 94, 0.08);
+            border-color: rgba(34, 197, 94, 0.18);
+        }
+
+        .btn.feedback-negative {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.18);
+        }
+
         .mobile-note {
             color: var(--muted);
             font-size: 13px;
@@ -669,7 +693,8 @@
 
     const state = {
         proxies: [],
-        currentIndex: 0
+        currentIndex: 0,
+        submittedFeedbackKeys: new Set()
     };
 
     const proxyCountNode = document.getElementById("proxyCount");
@@ -833,6 +858,35 @@
         return proxy.telegramWebLink || proxy.telegramDeepLink || "";
     }
 
+    function feedbackKey(proxyId, platform) {
+        return `${proxyId}:${platform}`;
+    }
+
+    function hasSubmittedFeedback(proxyId, platform) {
+        return state.submittedFeedbackKeys.has(feedbackKey(proxyId, platform));
+    }
+
+    function markFeedbackSubmitted(proxyId, platform) {
+        state.submittedFeedbackKeys.add(feedbackKey(proxyId, platform));
+    }
+
+    async function sendFeedback(proxyId, result, platform) {
+        const response = await fetch(`/api/proxies/${proxyId}/feedback`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ result, platform })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Feedback request failed with status ${response.status}`);
+        }
+
+        return response.json();
+    }
+
     function verificationMeta(proxy) {
         switch (proxy.verificationStatus) {
             case "VERIFIED":
@@ -886,6 +940,7 @@
         const hasWebLink = Boolean(proxy.telegramWebLink);
         const copyLink = copyableTelegramLink(proxy);
         const verification = verificationMeta(proxy);
+        const desktopFeedbackLocked = hasSubmittedFeedback(proxy.id, "DESKTOP");
 
         desktopContentNode.innerHTML = `
           <article class="featured-card">
@@ -930,6 +985,14 @@
               Desktop mode works best when you test one route at a time and move to the next candidate only if the current proxy does not behave well.
             </div>
 
+            <div class="feedback-actions">
+              <button class="btn feedback-positive" id="desktopWorkedBtn" type="button" ${desktopFeedbackLocked ? "disabled" : ""}>Worked</button>
+              <button class="btn feedback-negative" id="desktopFailedBtn" type="button" ${desktopFeedbackLocked ? "disabled" : ""}>Failed</button>
+            </div>
+            <div class="feedback-note">
+              Send quick feedback after trying this proxy in Telegram. Desktop feedback is stored with platform = DESKTOP.
+            </div>
+
             <div class="legend">
               <div class="legend-title">Verification Guide</div>
               <div class="legend-line">Verified = confirmed by deep MTProto check and safe to prioritize.</div>
@@ -955,6 +1018,43 @@
                 showToast(`Switched to proxy ${state.currentIndex + 1}`);
             });
         }
+
+        const desktopWorkedBtn = document.getElementById("desktopWorkedBtn");
+        const desktopFailedBtn = document.getElementById("desktopFailedBtn");
+        const desktopFeedbackButtons = [desktopWorkedBtn, desktopFailedBtn];
+
+        function lockDesktopFeedbackButtons() {
+            desktopFeedbackButtons.forEach(button => {
+                if (button) {
+                    button.disabled = true;
+                }
+            });
+        }
+
+        async function handleDesktopFeedback(result) {
+            try {
+                lockDesktopFeedbackButtons();
+                await sendFeedback(proxy.id, result, "DESKTOP");
+                markFeedbackSubmitted(proxy.id, "DESKTOP");
+                showToast(result === "WORKED" ? "Desktop feedback saved: worked" : "Desktop feedback saved: failed");
+            } catch (error) {
+                desktopFeedbackButtons.forEach(button => {
+                    if (button && !desktopFeedbackLocked) {
+                        button.disabled = false;
+                    }
+                });
+                showToast("Feedback failed");
+                console.error(error);
+            }
+        }
+
+        if (desktopWorkedBtn) {
+            desktopWorkedBtn.addEventListener("click", () => handleDesktopFeedback("WORKED"));
+        }
+
+        if (desktopFailedBtn) {
+            desktopFailedBtn.addEventListener("click", () => handleDesktopFeedback("FAILED"));
+        }
     }
 
     function renderMobile() {
@@ -968,6 +1068,8 @@
 
         const verifiedProxies = packProxies.filter(proxy => proxy.verificationStatus === "VERIFIED");
         const fallbackProxies = packProxies.filter(proxy => proxy.verificationStatus !== "VERIFIED");
+        const topMobileProxy = packProxies[0] ?? null;
+        const mobileFeedbackLocked = topMobileProxy ? hasSubmittedFeedback(topMobileProxy.id, "MOBILE") : true;
 
         function renderProxyRows(proxies, title) {
             if (!proxies.length) {
@@ -1013,8 +1115,15 @@
             <button class="btn primary" id="copyProxyPackBtn" type="button">Copy Proxy Pack</button>
             <button class="btn" id="copyWebPackBtn" type="button">Copy Web Links Pack</button>
           </div>
+          <div class="feedback-actions">
+            <button class="btn feedback-positive" id="mobileWorkedBtn" type="button" ${topMobileProxy && !mobileFeedbackLocked ? "" : "disabled"}>Worked</button>
+            <button class="btn feedback-negative" id="mobileFailedBtn" type="button" ${topMobileProxy && !mobileFeedbackLocked ? "" : "disabled"}>Failed</button>
+          </div>
           <div class="mobile-note">
             Copy packs are generated in verified-first order so confirmed MTProto proxies appear before TCP-only fallbacks.
+          </div>
+          <div class="feedback-note">
+            Mobile feedback is attached to the top proxy in the current mobile pack ordering.
           </div>
         `;
 
@@ -1037,6 +1146,47 @@
                 showToast("Copy failed");
             }
         });
+
+        const mobileWorkedBtn = document.getElementById("mobileWorkedBtn");
+        const mobileFailedBtn = document.getElementById("mobileFailedBtn");
+        const mobileFeedbackButtons = [mobileWorkedBtn, mobileFailedBtn];
+
+        function lockMobileFeedbackButtons() {
+            mobileFeedbackButtons.forEach(button => {
+                if (button) {
+                    button.disabled = true;
+                }
+            });
+        }
+
+        async function handleMobileFeedback(result) {
+            if (!topMobileProxy) {
+                return;
+            }
+
+            try {
+                lockMobileFeedbackButtons();
+                await sendFeedback(topMobileProxy.id, result, "MOBILE");
+                markFeedbackSubmitted(topMobileProxy.id, "MOBILE");
+                showToast(result === "WORKED" ? "Mobile feedback saved: worked" : "Mobile feedback saved: failed");
+            } catch (error) {
+                mobileFeedbackButtons.forEach(button => {
+                    if (button && !mobileFeedbackLocked) {
+                        button.disabled = false;
+                    }
+                });
+                showToast("Feedback failed");
+                console.error(error);
+            }
+        }
+
+        if (mobileWorkedBtn && topMobileProxy && !mobileFeedbackLocked) {
+            mobileWorkedBtn.addEventListener("click", () => handleMobileFeedback("WORKED"));
+        }
+
+        if (mobileFailedBtn && topMobileProxy && !mobileFeedbackLocked) {
+            mobileFailedBtn.addEventListener("click", () => handleMobileFeedback("FAILED"));
+        }
     }
 
     function renderAll() {
