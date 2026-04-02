@@ -1,16 +1,27 @@
 package com.peatroxd.mtprototest.checker.config;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 @Configuration
+@EnableConfigurationProperties({CheckerExecutorProperties.class, CheckerProperties.class})
 public class CheckerExecutorConfig {
 
-    @Bean(destroyMethod = "shutdown")
-    public ExecutorService proxyCheckerExecutor() {
-        return Executors.newFixedThreadPool(32);
+    @Bean
+    public Executor proxyCheckerExecutor(CheckerExecutorProperties properties) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(properties.getCorePoolSize());
+        executor.setMaxPoolSize(properties.getMaxPoolSize());
+        executor.setQueueCapacity(properties.getQueueCapacity());
+        executor.setThreadNamePrefix(properties.getThreadNamePrefix());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(properties.getAwaitTerminationSeconds());
+        executor.setAllowCoreThreadTimeOut(true);
+        executor.initialize();
+        return executor;
     }
 }

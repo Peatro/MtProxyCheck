@@ -47,6 +47,12 @@ public class ProxyFeedbackEntity {
     @Column(nullable = false)
     private ProxyFeedbackPlatform platform;
 
+    @Column(name = "client_key", nullable = false, length = 128)
+    private String clientKey;
+
+    @Column(name = "window_started_at", nullable = false)
+    private LocalDateTime windowStartedAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -57,6 +63,12 @@ public class ProxyFeedbackEntity {
         }
         if (platform == null) {
             platform = ProxyFeedbackPlatform.UNKNOWN;
+        }
+        if (clientKey == null || clientKey.isBlank()) {
+            clientKey = "anonymous";
+        }
+        if (windowStartedAt == null) {
+            windowStartedAt = createdAt;
         }
     }
 }

@@ -14,9 +14,38 @@ spring:
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
 app:
+  startup:
+    bootstrap-enabled: true
+
   parser:
+    initial-delay-ms: 43200000
     fixed-delay-ms: 43200000
+
+  checker:
+    initial-delay-ms: 300000
+    fixed-delay-ms: 300000
+    batch-size: 200
+    deep-probe-limit: 20
+    alive-quick-ok-recheck-after-ms: 300000
+    alive-verified-recheck-after-ms: 1800000
+    dead-retry-after-ms: 21600000
+    executor:
+      core-pool-size: 16
+      max-pool-size: 32
+      queue-capacity: 200
+      await-termination-seconds: 30
+      thread-name-prefix: proxy-checker-
+
+  feedback:
+    dedupe-window-minutes: 60
+    recent-limit: 20
 
   sources:
     solispirit:

@@ -1,8 +1,7 @@
 package com.peatroxd.mtprototest.scoring.service;
 
-import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
-import com.peatroxd.mtprototest.proxy.enums.ProxyVerificationStatus;
+import com.peatroxd.mtprototest.scoring.model.ProxyScoreContext;
 
 public interface ProxyScoringService {
-    int calculateScore(ProxyStatus status, ProxyVerificationStatus verificationStatus, long latencyMs);
+    int calculateScore(ProxyScoreContext context);
 }

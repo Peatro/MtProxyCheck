@@ -1,7 +1,7 @@
 package com.peatroxd.mtprototest.checker.service;
 
-import com.peatroxd.mtprototest.checker.model.ProxyCheckResult;
+import com.peatroxd.mtprototest.checker.model.ProxyCheckExecution;
 
 public interface ProxyCheckUpdateService {
-    void applyResult(Long proxyId, ProxyCheckResult result);
+    void applyExecution(Long proxyId, ProxyCheckExecution execution);
 }

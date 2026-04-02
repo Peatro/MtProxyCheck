@@ -6,6 +6,7 @@ public record ProxyCheckResult(
         boolean alive,
         long latencyMs,
         ProxyVerificationStatus verificationStatus,
+        MtProtoProbeFailureCode failureCode,
         String errorMessage
 ) {
 }

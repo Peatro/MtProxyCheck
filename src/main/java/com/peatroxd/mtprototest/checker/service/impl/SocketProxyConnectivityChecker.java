@@ -23,10 +23,10 @@ public class SocketProxyConnectivityChecker implements ProxyConnectivityChecker 
 
             long latency = (System.nanoTime() - startedAt) / 1_000_000;
 
-            return new ProxyCheckResult(true, latency, ProxyVerificationStatus.QUICK_OK, null);
+            return new ProxyCheckResult(true, latency, ProxyVerificationStatus.QUICK_OK, null, null);
 
         } catch (Exception e) {
-            return new ProxyCheckResult(false, -1, ProxyVerificationStatus.UNVERIFIED, e.getMessage());
+            return new ProxyCheckResult(false, -1, ProxyVerificationStatus.UNVERIFIED, null, e.getMessage());
         }
     }
 }

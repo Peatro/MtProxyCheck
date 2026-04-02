@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-add-feedback-dedupe-fields
+      author: codex
+      changes:
+        - addColumn:
+            tableName: proxy_feedback
+            columns:
+              - column:
+                  name: client_key
+                  type: VARCHAR(128)
+              - column:
+                  name: window_started_at
+                  type: TIMESTAMP
+        - sql:
+            sql: |
+              UPDATE proxy_feedback
+              SET client_key = CONCAT('legacy-', id)
+              WHERE client_key IS NULL;
+        - sql:
+            sql: |
+              UPDATE proxy_feedback
+              SET window_started_at = created_at
+              WHERE window_started_at IS NULL;
+        - addNotNullConstraint:
+            tableName: proxy_feedback
+            columnName: client_key
+            columnDataType: VARCHAR(128)
+        - addNotNullConstraint:
+            tableName: proxy_feedback
+            columnName: window_started_at
+            columnDataType: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: proxy_feedback
+            columnNames: proxy_id, platform, client_key, window_started_at
+            constraintName: uk_proxy_feedback_proxy_platform_client_window
+        - createIndex:
+            tableName: proxy_feedback
+            indexName: idx_proxy_feedback_proxy_created_at
+            columns:
+              - column:
+                  name: proxy_id
+              - column:
+                  name: created_at

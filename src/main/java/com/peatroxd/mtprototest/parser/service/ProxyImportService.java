@@ -1,5 +1,6 @@
 package com.peatroxd.mtprototest.parser.service;
 
+import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.parser.model.RawProxy;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
@@ -19,6 +20,7 @@ public class ProxyImportService {
     private final List<ProxySource> proxySources;
     private final RawProxyNormalizer rawProxyNormalizer;
     private final ProxyRepository proxyRepository;
+    private final ProxyMetricsService proxyMetricsService;
 
     public void importAll() {
         for (ProxySource source : proxySources) {
@@ -54,6 +56,7 @@ public class ProxyImportService {
                 imported,
                 skipped
         );
+        proxyMetricsService.incrementImported(imported);
     }
 
     private boolean exists(RawProxy proxy) {
@@ -74,6 +77,8 @@ public class ProxyImportService {
                 .source(proxy.source())
                 .status(ProxyStatus.NEW)
                 .score(0)
+                .consecutiveFailures(0)
+                .consecutiveSuccesses(0)
                 .build();
     }
 }

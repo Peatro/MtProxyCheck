@@ -17,6 +17,9 @@ public class ProxyCheckController {
     @PostMapping("/proxies")
     public ResponseEntity<String> checkProxies() {
         proxyBatchCheckService.checkNewProxies();
-        return ResponseEntity.ok("NEW proxy check completed");
+        proxyBatchCheckService.checkAliveQuickOkProxies();
+        proxyBatchCheckService.checkAliveVerifiedProxies();
+        proxyBatchCheckService.checkDeadProxies();
+        return ResponseEntity.ok("Lifecycle proxy check completed");
     }
 }

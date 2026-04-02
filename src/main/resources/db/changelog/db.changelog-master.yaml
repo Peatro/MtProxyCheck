@@ -9,3 +9,7 @@ databaseChangeLog:
       file: db/changelog/changes/004-migrate-proxy-verification-status-dead-to-unverified.yaml
   - include:
       file: db/changelog/changes/005-create-proxy-feedback.yaml
+  - include:
+      file: db/changelog/changes/006-add-proxy-lifecycle-and-check-history.yaml
+  - include:
+      file: db/changelog/changes/007-add-feedback-dedupe-fields.yaml

@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:mtprototest;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+app:
+  startup:
+    bootstrap-enabled: false
+  parser:
+    initial-delay-ms: 3600000
+    fixed-delay-ms: 3600000
+  checker:
+    initial-delay-ms: 3600000
+    fixed-delay-ms: 3600000
+    deep-probe-limit: 5
+    batch-size: 50
+  sources:
+    solispirit:
+      url: https://example.invalid/proxies.txt

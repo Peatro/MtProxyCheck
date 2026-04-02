@@ -2,7 +2,10 @@ package com.peatroxd.mtprototest.checker.service.impl;
 
 import com.peatroxd.mtprototest.checker.model.MtProtoDeepProbeResult;
 import com.peatroxd.mtprototest.checker.model.MtProtoProbeFailureCode;
+import com.peatroxd.mtprototest.checker.model.ProxySecretDetails;
+import com.peatroxd.mtprototest.checker.model.ProxySecretType;
 import com.peatroxd.mtprototest.checker.service.MtProtoDeepProbeService;
+import com.peatroxd.mtprototest.checker.service.ProxySecretParser;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +24,6 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 
 @Slf4j
 @Service
@@ -35,16 +37,21 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private static final int RES_PQ_CONSTRUCTOR_ID = 0x05162463;
     private static final int REQ_PQ_MULTI_CONSTRUCTOR_ID = 0xBE7E8EF1;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final HexFormat HEX_FORMAT = HexFormat.of();
+
+    private final ProxySecretParser proxySecretParser;
+
+    public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser) {
+        this.proxySecretParser = proxySecretParser;
+    }
 
     @Override
     public MtProtoDeepProbeResult probe(ProxyEntity proxy) {
-        byte[] normalizedSecret;
-
-        try {
-            normalizedSecret = normalizeSecret(proxy.getSecret());
-        } catch (IllegalArgumentException e) {
-            return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_SECRET, e.getMessage());
+        ProxySecretDetails secretDetails = proxySecretParser.parse(proxy.getSecret());
+        if (!secretDetails.supported()) {
+            MtProtoProbeFailureCode failureCode = secretDetails.type() == ProxySecretType.FAKE_TLS
+                    ? MtProtoProbeFailureCode.UNSUPPORTED_SECRET_FORMAT
+                    : MtProtoProbeFailureCode.INVALID_SECRET;
+            return MtProtoDeepProbeResult.failure(failureCode, secretDetails.message());
         }
 
         Instant startedAt = Instant.now();
@@ -53,7 +60,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             socket.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), CONNECT_TIMEOUT_MS);
             socket.setSoTimeout(READ_TIMEOUT_MS);
 
-            CryptoSession session = openObfuscatedSession(socket, normalizedSecret);
+            CryptoSession session = openObfuscatedSession(socket, secretDetails.keyBytes());
             byte[] nonce = randomBytes(16);
 
             writeFully(socket.getOutputStream(), session.encrypt(buildProbeRequest(nonce)));
@@ -161,22 +168,6 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
     private boolean isTransportError(byte[] payload) {
         return payload.length == 4 && littleEndianInt(payload, 0) < 0;
-    }
-
-    private byte[] normalizeSecret(String secretHex) {
-        if (secretHex == null || secretHex.isBlank()) {
-            throw new IllegalArgumentException("Proxy secret is empty");
-        }
-
-        byte[] rawSecret = HEX_FORMAT.parseHex(secretHex.trim());
-        if (rawSecret.length == 16) {
-            return rawSecret;
-        }
-        if (rawSecret.length == 17 && rawSecret[0] == PADDED_INTERMEDIATE_PREFIX) {
-            return slice(rawSecret, 1, rawSecret.length);
-        }
-
-        throw new IllegalArgumentException("Unsupported MTProxy secret format");
     }
 
     private byte[] generateInitializationPayload() {

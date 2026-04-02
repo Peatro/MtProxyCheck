@@ -13,7 +13,10 @@ public class ProxyImportScheduler {
 
     private final ProxyImportService proxyImportService;
 
-    @Scheduled(fixedDelayString = "${app.parser.fixed-delay-ms:43200000}")
+    @Scheduled(
+            initialDelayString = "${app.parser.initial-delay-ms:43200000}",
+            fixedDelayString = "${app.parser.fixed-delay-ms:43200000}"
+    )
     public void importProxies() {
         log.info("Starting scheduled proxy import");
         proxyImportService.importAll();

@@ -59,6 +59,18 @@ public class ProxyEntity {
     @Column(name = "last_latency_ms")
     private Long lastLatencyMs;
 
+    @Column(name = "last_checked_at")
+    private LocalDateTime lastCheckedAt;
+
+    @Column(name = "last_success_at")
+    private LocalDateTime lastSuccessAt;
+
+    @Column(name = "consecutive_failures", nullable = false)
+    private Integer consecutiveFailures;
+
+    @Column(name = "consecutive_successes", nullable = false)
+    private Integer consecutiveSuccesses;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -82,6 +94,12 @@ public class ProxyEntity {
         }
         if (verificationStatus == null) {
             verificationStatus = ProxyVerificationStatus.UNVERIFIED;
+        }
+        if (consecutiveFailures == null) {
+            consecutiveFailures = 0;
+        }
+        if (consecutiveSuccesses == null) {
+            consecutiveSuccesses = 0;
         }
     }
 

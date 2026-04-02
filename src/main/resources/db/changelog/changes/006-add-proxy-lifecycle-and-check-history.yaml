@@ -1,0 +1,95 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-add-proxy-lifecycle-and-check-history
+      author: codex
+      changes:
+        - addColumn:
+            tableName: proxies
+            columns:
+              - column:
+                  name: last_checked_at
+                  type: TIMESTAMP
+              - column:
+                  name: last_success_at
+                  type: TIMESTAMP
+              - column:
+                  name: consecutive_failures
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consecutive_successes
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: proxy_check_history
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: proxy_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: checked_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: check_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: alive
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: verification_status
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: latency_ms
+                  type: BIGINT
+              - column:
+                  name: failure_code
+                  type: VARCHAR(100)
+              - column:
+                  name: failure_reason
+                  type: VARCHAR(1000)
+        - addForeignKeyConstraint:
+            baseTableName: proxy_check_history
+            baseColumnNames: proxy_id
+            referencedTableName: proxies
+            referencedColumnNames: id
+            constraintName: fk_proxy_check_history_proxy_id
+            onDelete: CASCADE
+        - createIndex:
+            tableName: proxy_check_history
+            indexName: idx_proxy_check_history_proxy_checked_at
+            columns:
+              - column:
+                  name: proxy_id
+              - column:
+                  name: checked_at
+        - createIndex:
+            tableName: proxies
+            indexName: idx_proxies_status_verification_last_checked
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: verification_status
+              - column:
+                  name: last_checked_at
