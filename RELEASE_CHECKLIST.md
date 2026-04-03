@@ -6,6 +6,7 @@
 - [ ] application starts locally with the intended profile
 - [ ] Liquibase migrations apply cleanly on an empty database
 - [ ] `/actuator/health` returns `UP`
+  Use the normal launch profile or allow at least one successful import/check cycle to complete first; with startup bootstrap disabled, custom operational health may stay `DOWN`
 - [ ] `/actuator/prometheus` is reachable
 - [ ] `/docs` and `/v3/api-docs` are reachable
 

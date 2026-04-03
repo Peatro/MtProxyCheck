@@ -194,10 +194,14 @@ Useful for a quick local API/health check without doing a full startup import/ch
 
 Then verify:
 
-- `GET /actuator/health`
 - `GET /actuator/prometheus`
 - `GET /docs`
 - `GET /api/v1/proxies/stats`
+
+Notes:
+
+- if `app.startup.bootstrap-enabled=false`, the application can start correctly while `/actuator/health` still reports `DOWN/503`
+- this is expected until at least one successful import cycle produces source snapshots for the custom `proxyImports` health contributor
 
 ### Tests
 
@@ -262,6 +266,7 @@ Recommended production reverse-proxy behavior:
 - keep `/api/v1/proxies/*` public
 - restrict `/api/v1/admin/*`, `/api/v1/check/*`, and `/api/v1/import/*`
 - preserve real client IP headers consistently, because rate limiting and feedback controls depend on client identity
+- expect `/actuator/health` to remain `DOWN` until imports and checker cycles have produced valid operational snapshots
 
 ## Deployment Notes
 
