@@ -11,6 +11,7 @@ import com.peatroxd.mtprototest.checker.service.MtProtoDeepProbeService;
 import com.peatroxd.mtprototest.checker.service.ProxyBatchCheckService;
 import com.peatroxd.mtprototest.checker.service.ProxyCheckUpdateService;
 import com.peatroxd.mtprototest.checker.service.ProxyConnectivityChecker;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
@@ -41,15 +42,16 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
     private final Executor proxyCheckerExecutor;
     private final CheckerProperties checkerProperties;
     private final ProxyMetricsService proxyMetricsService;
+    private final PublicCatalogCacheService publicCatalogCacheService;
 
     @Override
     public ProxyBatchCheckSummary checkAllProxies() {
-        return checkProxies(proxyRepository.findAllByOrderByIdAsc(), "all proxies");
+        return checkAndRefreshCatalog(proxyRepository.findAllByOrderByIdAsc(), "all proxies");
     }
 
     @Override
     public ProxyBatchCheckSummary checkNewProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatus(
                         ProxyStatus.NEW,
                         PageRequest.of(0, checkerProperties.getBatchSize())
@@ -60,7 +62,7 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
 
     @Override
     public ProxyBatchCheckSummary checkAliveQuickOkProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusAndVerificationStatus(
                         ProxyStatus.ALIVE,
                         ProxyVerificationStatus.QUICK_OK,
@@ -73,7 +75,7 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
 
     @Override
     public ProxyBatchCheckSummary checkAliveVerifiedProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusAndVerificationStatus(
                         ProxyStatus.ALIVE,
                         ProxyVerificationStatus.VERIFIED,
@@ -86,7 +88,7 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
 
     @Override
     public ProxyBatchCheckSummary checkDeadProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusBefore(
                         ProxyStatus.DEAD,
                         LocalDateTime.now().minusNanos(checkerProperties.getDeadRetryAfterMs() * 1_000_000),
@@ -94,6 +96,14 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
                 ),
                 "DEAD proxies"
         );
+    }
+
+    private ProxyBatchCheckSummary checkAndRefreshCatalog(List<ProxyEntity> proxies, String selectionLabel) {
+        ProxyBatchCheckSummary summary = checkProxies(proxies, selectionLabel);
+        if (summary.totalChecked() > 0) {
+            publicCatalogCacheService.evictPublicCatalogViews();
+        }
+        return summary;
     }
 
     private ProxyBatchCheckSummary checkProxies(List<ProxyEntity> proxies, String selectionLabel) {

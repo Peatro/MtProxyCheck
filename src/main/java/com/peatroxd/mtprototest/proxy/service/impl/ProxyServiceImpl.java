@@ -2,6 +2,7 @@ package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.enums.ProxyCheckType;
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheNames;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyListRequest;
 import com.peatroxd.mtprototest.proxy.dto.response.ProxyPageResponse;
 import com.peatroxd.mtprototest.proxy.dto.response.ProxyResponse;
@@ -14,6 +15,7 @@ import com.peatroxd.mtprototest.proxy.mapper.ProxyResponseMapper;
 import com.peatroxd.mtprototest.proxy.repository.ProxyRepository;
 import com.peatroxd.mtprototest.proxy.service.ProxyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -55,6 +57,7 @@ public class ProxyServiceImpl implements ProxyService {
     private final ProxyResponseMapper proxyResponseMapper;
 
     @Override
+    @Cacheable(PublicCatalogCacheNames.PROXY_BEST)
     public List<ProxyResponse> getBest() {
         return proxyRepository.findTop200ByStatusOrderByScoreDescLastLatencyMsAsc(ProxyStatus.ALIVE)
                 .stream()
@@ -80,6 +83,7 @@ public class ProxyServiceImpl implements ProxyService {
     }
 
     @Override
+    @Cacheable(cacheNames = PublicCatalogCacheNames.PROXY_BY_ID, key = "#proxyId")
     public ProxyResponse getById(Long proxyId) {
         return proxyRepository.findById(proxyId)
                 .map(proxyResponseMapper::toResponse)
@@ -87,6 +91,7 @@ public class ProxyServiceImpl implements ProxyService {
     }
 
     @Override
+    @Cacheable(PublicCatalogCacheNames.PROXY_STATS)
     public ProxyStatsResponse getStats() {
         LocalDateTime since = LocalDateTime.now().minusHours(24);
 

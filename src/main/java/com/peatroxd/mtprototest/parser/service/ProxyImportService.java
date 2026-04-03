@@ -1,6 +1,7 @@
 package com.peatroxd.mtprototest.parser.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.parser.config.ParserSourcesProperties;
 import com.peatroxd.mtprototest.parser.model.RawProxy;
@@ -34,6 +35,7 @@ public class ProxyImportService {
     private final RawProxyNormalizer rawProxyNormalizer;
     private final ProxyRepository proxyRepository;
     private final ProxyMetricsService proxyMetricsService;
+    private final PublicCatalogCacheService publicCatalogCacheService;
 
     public void importAll() {
         List<ProxySource> proxySources = configuredSources();
@@ -50,6 +52,8 @@ public class ProxyImportService {
                 proxyMetricsService.incrementSourceFailure(source.sourceName());
             }
         }
+
+        publicCatalogCacheService.evictPublicCatalogViews();
     }
 
     public void importFromSource(ProxySource source) {

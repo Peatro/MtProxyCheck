@@ -1,6 +1,7 @@
 package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
@@ -38,6 +39,8 @@ class ProxyFeedbackServiceImplTest {
     private ProxyCheckHistoryRepository proxyCheckHistoryRepository;
     @Mock
     private ProxyScoringService proxyScoringService;
+    @Mock
+    private PublicCatalogCacheService publicCatalogCacheService;
 
     @Test
     void shouldRejectDuplicateFeedbackInSameWindow() {
@@ -47,7 +50,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyFeedbackRepository,
                 proxyCheckHistoryRepository,
                 proxyScoringService,
-                properties
+                properties,
+                publicCatalogCacheService
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
@@ -75,7 +79,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyFeedbackRepository,
                 proxyCheckHistoryRepository,
                 proxyScoringService,
-                properties
+                properties,
+                publicCatalogCacheService
         );
         ProxyEntity proxy = proxy();
 
@@ -98,6 +103,8 @@ class ProxyFeedbackServiceImplTest {
 
         verify(proxyFeedbackRepository).save(any());
         verify(proxyRepository).save(ArgumentMatchers.argThat(saved -> saved.getScore() == 77));
+        verify(publicCatalogCacheService).evictProxyById(1L);
+        verify(publicCatalogCacheService).evictPublicCatalogViews();
     }
 
     private ProxyEntity proxy() {

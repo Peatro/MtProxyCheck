@@ -6,6 +6,7 @@ import com.peatroxd.mtprototest.checker.model.ProxyCheckHistoryRecord;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckResult;
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
 import com.peatroxd.mtprototest.checker.service.ProxyCheckUpdateService;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
@@ -30,6 +31,7 @@ public class ProxyCheckUpdateServiceImpl implements ProxyCheckUpdateService {
     private final ProxyFeedbackRepository proxyFeedbackRepository;
     private final FeedbackProperties feedbackProperties;
     private final ProxyScoringService proxyScoringService;
+    private final PublicCatalogCacheService publicCatalogCacheService;
 
     @Override
     @Transactional
@@ -49,6 +51,7 @@ public class ProxyCheckUpdateServiceImpl implements ProxyCheckUpdateService {
         )));
 
         proxyRepository.save(proxy);
+        publicCatalogCacheService.evictProxyById(proxyId);
     }
 
     private void saveHistory(ProxyEntity proxy, List<ProxyCheckHistoryRecord> historyRecords) {

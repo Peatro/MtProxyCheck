@@ -1,6 +1,7 @@
 package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.dto.response.ProxyFeedbackResponse;
@@ -38,6 +39,7 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
     private final ProxyCheckHistoryRepository proxyCheckHistoryRepository;
     private final ProxyScoringService proxyScoringService;
     private final FeedbackProperties feedbackProperties;
+    private final PublicCatalogCacheService publicCatalogCacheService;
 
     @Override
     @Transactional
@@ -88,6 +90,8 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
                         .toList()
         )));
         proxyRepository.save(proxy);
+        publicCatalogCacheService.evictProxyById(proxyId);
+        publicCatalogCacheService.evictPublicCatalogViews();
 
         return new ProxyFeedbackResponse(true, proxy.getId(), request.result().name(), platform.name());
     }
