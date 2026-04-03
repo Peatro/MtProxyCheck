@@ -26,6 +26,32 @@ public class ProxyMetricsService {
         }
     }
 
+    public void incrementSourceImported(String sourceName, int importedCount) {
+        if (importedCount > 0) {
+            meterRegistry.counter("proxy.imported.by_source.total", "source", normalizeSourceTag(sourceName))
+                    .increment(importedCount);
+        }
+    }
+
+    public void incrementSourceSkipped(String sourceName, int skippedCount) {
+        if (skippedCount > 0) {
+            meterRegistry.counter("proxy.import.skipped.by_source.total", "source", normalizeSourceTag(sourceName))
+                    .increment(skippedCount);
+        }
+    }
+
+    public void incrementSourceRejected(String sourceName, int rejectedCount) {
+        if (rejectedCount > 0) {
+            meterRegistry.counter("proxy.import.rejected.by_source.total", "source", normalizeSourceTag(sourceName))
+                    .increment(rejectedCount);
+        }
+    }
+
+    public void incrementSourceFailure(String sourceName) {
+        meterRegistry.counter("proxy.import.failure.by_source.total", "source", normalizeSourceTag(sourceName))
+                .increment();
+    }
+
     public void incrementCheckSuccess() {
         checkSuccessCounter.increment();
     }
@@ -41,5 +67,9 @@ public class ProxyMetricsService {
     public void incrementDeepProbeFailure(MtProtoProbeFailureCode failureCode) {
         String tagValue = failureCode != null ? failureCode.name() : "UNKNOWN";
         meterRegistry.counter("proxy.deep_probe.total", "outcome", "failure", "failure_code", tagValue).increment();
+    }
+
+    private String normalizeSourceTag(String sourceName) {
+        return sourceName != null && !sourceName.isBlank() ? sourceName : "unknown";
     }
 }

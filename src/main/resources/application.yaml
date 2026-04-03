@@ -48,5 +48,20 @@ app:
     recent-limit: 20
 
   sources:
-    solispirit:
-      url: https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt
+    entries:
+      - name: solispirit
+        url: https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt
+        format: TELEGRAM_TEXT
+        enabled: true
+      - name: free_proxy_db_text
+        url: https://raw.githubusercontent.com/LoneKingCode/free-proxy-db/main/proxies/mtproto.txt
+        format: TELEGRAM_TEXT
+        enabled: true
+      - name: free_proxy_db_json
+        url: https://raw.githubusercontent.com/LoneKingCode/free-proxy-db/main/proxies/mtproto.json
+        format: JSON_CONNECT_STRING
+        enabled: true
+      - name: mtpro_xyz_pointer
+        url: https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json
+        format: URL_POINTER_TELEGRAM_TEXT
+        enabled: true
