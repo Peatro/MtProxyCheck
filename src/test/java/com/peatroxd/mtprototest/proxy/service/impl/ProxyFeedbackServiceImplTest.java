@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,6 +56,7 @@ class ProxyFeedbackServiceImplTest {
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(0L);
         when(proxyFeedbackRepository.existsByProxyIdAndPlatformAndClientKeyAndWindowStartedAt(
                 any(),
                 any(),
@@ -72,6 +74,59 @@ class ProxyFeedbackServiceImplTest {
     }
 
     @Test
+    void shouldRejectWhenClientExceedsWindowSubmissionLimit() {
+        FeedbackProperties properties = new FeedbackProperties();
+        properties.setMaxSubmissionsPerWindow(2);
+        ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
+                proxyRepository,
+                proxyFeedbackRepository,
+                proxyCheckHistoryRepository,
+                proxyScoringService,
+                properties,
+                publicCatalogCacheService
+        );
+
+        when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(2L);
+
+        assertThatThrownBy(() -> service.submitFeedback(
+                1L,
+                new ProxyFeedbackRequest(ProxyFeedbackResult.WORKED, ProxyFeedbackPlatform.DESKTOP),
+                "fingerprint"
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429 TOO_MANY_REQUESTS")
+                .hasMessageContaining("Feedback submission limit exceeded");
+
+        verify(proxyFeedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldUseStricterSubmissionLimitForAnonymousFeedback() {
+        FeedbackProperties properties = new FeedbackProperties();
+        properties.setAnonymousMaxSubmissionsPerWindow(1);
+        ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
+                proxyRepository,
+                proxyFeedbackRepository,
+                proxyCheckHistoryRepository,
+                proxyScoringService,
+                properties,
+                publicCatalogCacheService
+        );
+
+        when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.submitFeedback(
+                1L,
+                new ProxyFeedbackRequest(ProxyFeedbackResult.WORKED, ProxyFeedbackPlatform.DESKTOP),
+                null
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429 TOO_MANY_REQUESTS");
+    }
+
+    @Test
     void shouldPersistFeedbackAndRecalculateScore() {
         FeedbackProperties properties = new FeedbackProperties();
         ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
@@ -85,6 +140,7 @@ class ProxyFeedbackServiceImplTest {
         ProxyEntity proxy = proxy();
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(0L);
         when(proxyFeedbackRepository.existsByProxyIdAndPlatformAndClientKeyAndWindowStartedAt(
                 any(),
                 any(),

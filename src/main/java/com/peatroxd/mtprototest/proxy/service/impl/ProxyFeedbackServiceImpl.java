@@ -33,6 +33,7 @@ import java.util.HexFormat;
 public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
 
     private static final HexFormat HEX_FORMAT = HexFormat.of();
+    private static final String ANONYMOUS_CLIENT_VALUE = "anonymous";
 
     private final ProxyRepository proxyRepository;
     private final ProxyFeedbackRepository proxyFeedbackRepository;
@@ -52,11 +53,13 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proxy not found"));
 
         ProxyFeedbackPlatform platform = request.platform() != null ? request.platform() : ProxyFeedbackPlatform.UNKNOWN;
+        boolean anonymousClient = clientKey == null || clientKey.isBlank();
         String normalizedClientKey = normalizeClientKey(clientKey);
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         long windowMinutes = Math.max(1, feedbackProperties.getDedupeWindowMinutes());
         LocalDateTime hourStart = now.withMinute(0);
         LocalDateTime windowStartedAt = hourStart.plusMinutes((now.getMinute() / windowMinutes) * windowMinutes);
+        enforceSubmissionLimit(normalizedClientKey, anonymousClient, now, windowMinutes);
 
         if (proxyFeedbackRepository.existsByProxyIdAndPlatformAndClientKeyAndWindowStartedAt(
                 proxyId,
@@ -96,8 +99,20 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
         return new ProxyFeedbackResponse(true, proxy.getId(), request.result().name(), platform.name());
     }
 
+    private void enforceSubmissionLimit(String normalizedClientKey, boolean anonymousClient, LocalDateTime now, long windowMinutes) {
+        LocalDateTime windowStart = now.minusMinutes(windowMinutes);
+        long submissionsInWindow = proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(normalizedClientKey, windowStart);
+        int maxAllowed = anonymousClient
+                ? feedbackProperties.getAnonymousMaxSubmissionsPerWindow()
+                : feedbackProperties.getMaxSubmissionsPerWindow();
+
+        if (submissionsInWindow >= maxAllowed) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Feedback submission limit exceeded");
+        }
+    }
+
     private String normalizeClientKey(String clientKey) {
-        String value = (clientKey == null || clientKey.isBlank()) ? "anonymous" : clientKey.trim();
+        String value = (clientKey == null || clientKey.isBlank()) ? ANONYMOUS_CLIENT_VALUE : clientKey.trim();
         try {
             return HEX_FORMAT.formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {

@@ -22,6 +22,11 @@ app:
     fixed-delay-ms: 3600000
     deep-probe-limit: 5
     batch-size: 50
+  feedback:
+    dedupe-window-minutes: 60
+    recent-limit: 20
+    max-submissions-per-window: 4
+    anonymous-max-submissions-per-window: 2
   admin:
     enabled: true
     header-name: X-Admin-Key

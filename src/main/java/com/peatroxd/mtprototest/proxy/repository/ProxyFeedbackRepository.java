@@ -17,5 +17,7 @@ public interface ProxyFeedbackRepository extends JpaRepository<ProxyFeedbackEnti
             LocalDateTime windowStartedAt
     );
 
+    long countByClientKeyAndCreatedAtAfter(String clientKey, LocalDateTime createdAt);
+
     List<ProxyFeedbackEntity> findTop20ByProxyIdOrderByCreatedAtDesc(Long proxyId);
 }
