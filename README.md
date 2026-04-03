@@ -323,6 +323,7 @@ Full task plan and moderation points are maintained in [BACKLOG.md](./BACKLOG.md
 ## Repository Pointers
 
 - [`BACKLOG.md`](./BACKLOG.md): product backlog and release plan
+- [`DEPLOYMENT_DECISIONS.md`](./DEPLOYMENT_DECISIONS.md): open deployment and operations decisions for launch
 - [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md): pre-launch and release checklist
 - [`build.gradle.kts`](./build.gradle.kts): project dependencies and build setup
 - [`src/main/resources/application.yaml`](./src/main/resources/application.yaml): runtime configuration
