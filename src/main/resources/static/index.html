@@ -1,148 +1,418 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTProto Access</title>
+    <title>MTProto Proxy Catalog</title>
     <style>
-        :root{--bg:#f5ede2;--bg2:#ead9c7;--card:rgba(255,250,244,.82);--line:rgba(60,40,24,.12);--ink:#221a16;--muted:#65594f;--accent:#c2512d;--accent2:#1d5a51;--good:#2e8b57;--warn:#d3881a;--bad:#b3473d;--shadow:0 18px 50px rgba(76,47,22,.12);--r1:30px;--r2:22px;--r3:16px}
-        *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Manrope","IBM Plex Sans","Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at top left,rgba(194,81,45,.14),transparent 24%),radial-gradient(circle at right top,rgba(29,90,81,.12),transparent 20%),linear-gradient(180deg,var(--bg),var(--bg2))}
-        body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(70,45,25,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(70,45,25,.025) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(circle at center,black 45%,transparent 92%)}
-        .wrap{width:min(1180px,calc(100% - 24px));margin:12px auto;padding:8px}
-        .hero,.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(14px)}
-        .hero{padding:26px;border-radius:36px;overflow:hidden;position:relative}
-        .hero:after{content:"";position:absolute;right:-70px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(194,81,45,.18),transparent 70%)}
-        .eyebrow,.tag,.pill{display:inline-flex;align-items:center;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
-        .eyebrow{padding:9px 13px;border:1px solid rgba(194,81,45,.16);background:rgba(194,81,45,.08);color:var(--accent)}
-        .hero-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px;align-items:end;position:relative;z-index:1}
-        h1{margin:16px 0 12px;font-size:clamp(38px,6vw,72px);line-height:.94;letter-spacing:-.05em;max-width:760px}
-        .copy,.sub,.micro,.metric-note,.empty,.status,.explain p,.meta-note{color:var(--muted);line-height:1.72}
-        .copy{font-size:16px;max-width:720px}.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.chip{padding:9px 13px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.45);font-size:13px;font-weight:700}
-        .hero-side{display:grid;gap:12px}.hero-box{padding:18px;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.5)}.label{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.big{margin-top:8px;font-size:38px;font-weight:800;letter-spacing:-.05em}
-        .status{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.45);font-size:14px}.status.error{color:#7e251d;background:rgba(179,71,61,.1);border-color:rgba(179,71,61,.26)}
-        .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}.metric{padding:18px;border-radius:20px;transform:translateY(8px);opacity:0;animation:rise .45s ease forwards}.metric:nth-child(2){animation-delay:.06s}.metric:nth-child(3){animation-delay:.12s}.metric:nth-child(4){animation-delay:.18s}.metric,.proxy-card,.queue-item,.explain-item{border:1px solid var(--line);background:rgba(255,255,255,.48);border-radius:20px}
-        .metric-value{margin-top:8px;font-size:28px;font-weight:800;letter-spacing:-.05em}
-        .layout{display:grid;grid-template-columns:1.16fr .84fr;gap:18px;margin-top:18px}.stack{display:grid;gap:18px}.card{padding:22px;border-radius:30px;position:relative;overflow:hidden}.card:after{content:"";position:absolute;right:-50px;bottom:-60px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(29,90,81,.09),transparent 70%)}
-        .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.title{margin:0;font-size:28px;letter-spacing:-.04em}.sub{margin:8px 0 0;font-size:14px}.tag{padding:8px 12px;border:1px solid rgba(29,90,81,.16);background:rgba(29,90,81,.08);color:var(--accent2);white-space:nowrap}
-        .panel{padding:20px;border-radius:24px;border:1px solid rgba(60,40,24,.16);background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,248,240,.76))}
-        .topline{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.addr{margin:0;font-size:clamp(24px,3vw,38px);line-height:1;letter-spacing:-.05em;word-break:break-word}.meta-note{margin:8px 0 0;font-size:13px}
-        .tagrow{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.pill{padding:9px 12px;border:1px solid transparent}.verified{color:var(--accent2);background:rgba(29,90,81,.13);border-color:rgba(29,90,81,.18)}.quick{color:#8b5b12;background:rgba(211,136,26,.14);border-color:rgba(211,136,26,.24)}.unverified{color:#665950;background:rgba(101,89,79,.09);border-color:rgba(101,89,79,.16)}.alive{color:#21532d;background:rgba(46,139,87,.14);border-color:rgba(46,139,87,.24)}.other{color:#665950;background:rgba(101,89,79,.08);border-color:rgba(101,89,79,.16)}
-        .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.fact{padding:13px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.4)}.fact-value,.meta-value{margin-top:7px;font-size:17px;font-weight:800}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}.good{background:var(--good)}.mid{background:var(--warn)}.bad{background:var(--bad)}
-        .actions,.feedback,.pack-actions,.meta-grid{display:grid;gap:12px}.actions,.feedback,.pack-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
-        .btn{appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:16px;padding:14px 16px;font:inherit;font-size:14px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;transition:.16s transform,.16s border-color,.16s box-shadow,.16s opacity}.btn:hover{transform:translateY(-1px);border-color:rgba(194,81,45,.26);box-shadow:0 12px 22px rgba(76,47,22,.09)}.btn.primary{background:linear-gradient(135deg,#c2512d,#d96b48);border-color:rgba(194,81,45,.35);color:#fff7f2}.btn.secondary{background:rgba(29,90,81,.08);border-color:rgba(29,90,81,.18);color:var(--accent2)}.btn.goodbtn{background:rgba(46,139,87,.12);border-color:rgba(46,139,87,.2);color:#21532d}.btn.badbtn{background:rgba(179,71,61,.1);border-color:rgba(179,71,61,.2);color:#7e251d}.btn:disabled,.btn.disabled{opacity:.45;cursor:not-allowed;transform:none;pointer-events:none}
-        .list{display:grid;gap:12px}.proxy-card,.queue-item,.explain-item{padding:16px}.proxy-top,.queue-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.proxy-title,.queue-title,.explain h3{margin:0;font-size:16px;font-weight:800}.proxy-copy,.queue-copy{margin:6px 0 0;font-size:12px;color:var(--muted)}.meta-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}.meta-cell{padding:10px;border-radius:14px;background:rgba(255,255,255,.42);border:1px solid rgba(60,40,24,.08)}.meta-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-        .explain,.steps{display:grid;gap:12px}.empty{text-align:center;padding:22px;border:1px dashed rgba(60,40,24,.18);border-radius:18px;background:rgba(255,255,255,.28);font-size:15px}
-        .steps-wrap{margin-top:18px}.steps{grid-template-columns:repeat(3,minmax(0,1fr))}.step{padding:18px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.48)}.step-num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(194,81,45,.12);color:var(--accent);font-weight:800;margin-bottom:12px}.step h3{margin:0 0 8px;font-size:18px;letter-spacing:-.03em}.step p{margin:0;color:var(--muted);line-height:1.72}
-        .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);padding:14px 18px;border-radius:14px;border:1px solid rgba(194,81,45,.18);background:rgba(34,26,22,.92);color:#fff7f1;box-shadow:0 18px 40px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:.18s opacity,.18s transform;z-index:30}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-        @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        @media (max-width:1080px){.hero-grid,.layout{grid-template-columns:1fr}}
-        @media (max-width:820px){.metrics,.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media (max-width:680px){.wrap{width:min(100% - 12px,1180px);margin:6px auto;padding:4px}.hero,.card{padding:18px;border-radius:24px}h1{font-size:clamp(34px,12vw,52px)}.metrics,.facts,.actions,.feedback,.pack-actions,.meta-grid,.steps{grid-template-columns:1fr}.head,.topline,.proxy-top,.queue-top{flex-direction:column;align-items:flex-start}}
+        :root{
+            --bg:#f3efe7;
+            --surface:#fffdf9;
+            --surface-soft:#f7f3ec;
+            --line:#dfd4c6;
+            --line-strong:#ccbca8;
+            --ink:#1f1b16;
+            --muted:#6a6158;
+            --accent:#cc5a2f;
+            --accent-soft:#fff1ea;
+            --safe:#1d6a48;
+            --safe-soft:#ebf7f1;
+            --warn:#9b6a11;
+            --warn-soft:#fff6df;
+            --idle:#6b635a;
+            --idle-soft:#f1ece5;
+            --danger:#a13d35;
+            --danger-soft:#fceceb;
+            --shadow:0 16px 36px rgba(55,34,16,.08);
+            --content:1160px;
+        }
+
+        *{box-sizing:border-box}
+        html,body{margin:0;min-height:100%}
+        body{
+            font-family:"Manrope","IBM Plex Sans","Segoe UI",sans-serif;
+            color:var(--ink);
+            background:
+                radial-gradient(circle at top left,rgba(204,90,47,.07),transparent 30%),
+                linear-gradient(180deg,#f8f5ef 0%,var(--bg) 55%,#ede7dd 100%);
+        }
+
+        a{color:inherit}
+        button,input,textarea{font:inherit}
+        .page{width:min(calc(100% - 24px),var(--content));margin:14px auto 28px}
+        .shell{display:grid;gap:18px}
+        .hero,.stat,.card,.faq-item{background:rgba(255,253,249,.9);border:1px solid var(--line);box-shadow:var(--shadow)}
+        .hero{border-radius:36px;padding:32px}
+        .hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:start}
+        .eyebrow,.badge,.status-pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+        .eyebrow{padding:8px 12px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(204,90,47,.16)}
+        h1{margin:16px 0 10px;font-size:clamp(40px,6vw,68px);line-height:.95;letter-spacing:-.05em;max-width:720px}
+        .lead,.muted,.status-note,.state-copy,.mini-copy,.faq-item p{color:var(--muted);line-height:1.65}
+        .lead{margin:0;max-width:640px;font-size:17px}
+        .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+        .hero-side{display:grid;gap:14px}
+        .hero-note{padding:18px;border-radius:22px;background:var(--surface-soft);border:1px solid var(--line)}
+        .hero-note strong{display:block;font-size:17px;margin-bottom:8px}
+        .status-bar{margin-top:18px;padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:var(--surface-soft);font-size:14px}
+        .status-bar.error{background:var(--danger-soft);border-color:rgba(161,61,53,.18);color:var(--danger)}
+        .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+        .stat{border-radius:20px;padding:18px}
+        .stat-label,.meta-label,.kicker{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+        .stat-value{margin-top:8px;font-size:30px;font-weight:800;letter-spacing:-.05em}
+        .layout{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:start}
+        .stack{display:grid;gap:18px}
+        .card{border-radius:30px;padding:24px}
+        .card.hero-card{padding:28px;background:linear-gradient(180deg,#fffdf9 0%,#fff7f1 100%);border-color:var(--line-strong)}
+        .section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+        .section-head h2{margin:0;font-size:32px;letter-spacing:-.04em}
+        .section-head p{margin:8px 0 0}
+        .badge{padding:8px 12px;border:1px solid var(--line);background:var(--surface-soft);color:var(--muted);white-space:nowrap}
+        .best-card{display:grid;gap:18px}
+        .best-main{display:grid;gap:14px;padding:22px;border-radius:24px;background:var(--surface);border:1px solid var(--line)}
+        .best-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+        .proxy-address{margin:6px 0 0;font-size:clamp(28px,4vw,44px);line-height:1;letter-spacing:-.05em;word-break:break-word}
+        .status-pill{padding:10px 13px;border:1px solid transparent}
+        .is-verified{color:var(--safe);background:var(--safe-soft);border-color:rgba(29,106,72,.18)}
+        .is-fallback{color:var(--warn);background:var(--warn-soft);border-color:rgba(155,106,17,.18)}
+        .is-unconfirmed{color:var(--idle);background:var(--idle-soft);border-color:rgba(107,99,90,.18)}
+        .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+        .fact{padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--surface-soft)}
+        .fact-value,.meta-value{margin-top:8px;font-size:17px;font-weight:800}
+        .btn-row,.feedback-row,.pack-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .btn{appearance:none;border:1px solid var(--line);border-radius:16px;padding:15px 16px;background:var(--surface);color:var(--ink);text-decoration:none;text-align:center;font-weight:800;cursor:pointer;transition:.16s transform,.16s box-shadow,.16s border-color,.16s opacity}
+        .btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(55,34,16,.08);border-color:rgba(204,90,47,.22)}
+        .btn.primary{background:linear-gradient(135deg,var(--accent),#df7348);color:#fff8f4;border-color:rgba(204,90,47,.28)}
+        .btn.secondary{background:var(--surface-soft)}
+        .btn.safe{background:var(--safe-soft);color:var(--safe);border-color:rgba(29,106,72,.18)}
+        .btn.danger{background:var(--danger-soft);color:var(--danger);border-color:rgba(161,61,53,.18)}
+        .btn:disabled,.btn.disabled{opacity:.48;pointer-events:none;transform:none;box-shadow:none}
+        .state{display:grid;gap:12px;justify-items:start;padding:20px;border-radius:20px;border:1px dashed var(--line-strong);background:var(--surface-soft)}
+        .state-title{margin:0;font-size:20px;letter-spacing:-.03em}
+        .list{display:grid;gap:12px}
+        .mini-card{padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--surface-soft)}
+        .mini-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+        .mini-title{margin:0;font-size:18px;letter-spacing:-.03em;word-break:break-word}
+        .meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+        .meta-cell{border:1px solid var(--line);background:rgba(255,255,255,.55);border-radius:14px;padding:10px}
+        .info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+        .info-block{display:grid;gap:12px}
+        .info-item{padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--surface-soft)}
+        .info-item h3,.faq-item h3{margin:0 0 8px;font-size:18px;letter-spacing:-.03em}
+        .faq{display:grid;gap:12px}
+        .faq-item{border-radius:20px;padding:18px}
+        .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(18px);background:rgba(31,27,22,.94);color:#fffaf5;padding:14px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 40px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:.18s opacity,.18s transform;z-index:30}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        @media (max-width:1024px){.hero-grid,.layout,.info-grid{grid-template-columns:1fr}}
+        @media (max-width:780px){.stats,.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media (max-width:640px){.page{width:min(calc(100% - 12px),var(--content));margin:6px auto 18px}.hero,.card{padding:18px;border-radius:24px}h1{font-size:clamp(34px,12vw,48px)}.section-head,.best-top,.mini-head{flex-direction:column;align-items:flex-start}.stats,.facts,.btn-row,.feedback-row,.pack-actions,.meta-grid{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
-<main class="wrap">
-    <section class="hero">
-        <div class="eyebrow">MTProto для Telegram</div>
-        <div class="hero-grid">
-            <div>
-                <h1>Рабочие прокси без ручного перебора длинных списков</h1>
-                <p class="copy">Каталог берет лучшие MTProto-маршруты из нескольких источников, проверяет их и отдает готовый сценарий: что открыть сейчас, что держать как запасной вариант и что быстро вставить в телефон.</p>
-                <div class="chips">
-                    <div class="chip">Несколько источников</div>
-                    <div class="chip">Verified выше в выдаче</div>
-                    <div class="chip">Быстрый переход к следующему</div>
-                    <div class="chip">Пакет ссылок для телефона</div>
+<main class="page">
+    <div class="shell">
+        <section class="hero">
+            <div class="eyebrow">MTProto proxy catalog</div>
+            <div class="hero-grid">
+                <div>
+                    <h1>Открой Telegram через лучший вариант прямо сейчас</h1>
+                    <p class="lead">Сервис показывает один основной прокси, даёт запасные варианты и готовый набор для телефона. Сначала нажми главную кнопку. Если не сработает, переходи к следующему.</p>
+                    <div class="hero-actions">
+                        <a class="btn primary" href="#bestProxy">Открыть лучший прокси</a>
+                        <a class="btn secondary" href="#mobilePack">Набор для телефона</a>
+                    </div>
                 </div>
+                <aside class="hero-side">
+                    <div class="hero-note"><strong>Сценарий на 10 секунд</strong><div class="muted">1. Открой лучший прокси. 2. Если не сработал, нажми следующий. 3. На телефоне используй готовый набор ссылок.</div></div>
+                    <div class="hero-note"><strong>Public beta</strong><div class="muted">Результаты обновляются по API и проверкам. Метрики ниже нужны для доверия, но не отвлекают от основного действия.</div></div>
+                </aside>
             </div>
-            <aside class="hero-side">
-                <div class="hero-box"><div class="label">Маршрутов в подборке</div><div class="big" id="heroCount">0</div><div class="sub">Уже отсортированы по качеству, проверке и скорости.</div></div>
-                <div class="hero-box"><div class="label">Стадия продукта</div><div class="big">Public beta</div><div class="sub">Сервис готов для живого использования на сайте.</div></div>
-            </aside>
-        </div>
-        <div id="status" class="status">Загружаю каталог...</div>
-    </section>
+            <div id="status" class="status-bar">Загружаю каталог...</div>
+        </section>
 
-    <section class="metrics">
-        <article class="metric"><div class="label">Живые сейчас</div><div id="aliveCount" class="metric-value">0</div><div class="metric-note">Прокси, которые были доступны на последней проверке.</div></article>
-        <article class="metric"><div class="label">Verified</div><div id="verifiedCount" class="metric-value">0</div><div class="metric-note">Подтверждены deep MTProto-проверкой.</div></article>
-        <article class="metric"><div class="label">Проверок за 24ч</div><div id="checksCount" class="metric-value">0</div><div class="metric-note">Показывает, что каталог не статичен и реально обновляется.</div></article>
-        <article class="metric"><div class="label">Deep success</div><div id="deepRate" class="metric-value">0%</div><div class="metric-note">Доля успешных deep-check за сутки.</div></article>
-    </section>
+        <section class="stats" aria-label="Статистика каталога">
+            <article class="stat"><div class="stat-label">В каталоге сейчас</div><div id="heroCount" class="stat-value">0</div><div class="muted">Сколько вариантов доступно для быстрого выбора.</div></article>
+            <article class="stat"><div class="stat-label">Проверены Telegram</div><div id="verifiedCount" class="stat-value">0</div><div class="muted">Прошли полную проверку и приоритетны в выдаче.</div></article>
+            <article class="stat"><div class="stat-label">Живые сейчас</div><div id="aliveCount" class="stat-value">0</div><div class="muted">Отвечали на последней проверке.</div></article>
+            <article class="stat"><div class="stat-label">Проверок за 24 часа</div><div id="checksCount" class="stat-value">0</div><div class="muted"><span id="deepRate">0%</span> из deep-check завершились успешно.</div></article>
+        </section>
 
-    <section class="layout">
-        <div class="stack">
+        <section class="layout">
+            <div class="stack">
+                <section id="bestProxy" class="card hero-card">
+                    <div class="section-head">
+                        <div><div class="kicker">Главное действие</div><h2>Лучший прокси сейчас</h2><p class="muted">Это центральная карточка. Открывай её первой, не разбирая длинный список вручную.</p></div>
+                        <div id="desktopPos" class="badge">Вариант 0 / 0</div>
+                    </div>
+                    <div id="desktopPanel" class="state"><h3 class="state-title">Подбираю лучший вариант</h3><div class="state-copy">Проверяю доступные прокси и собираю карточку для быстрого старта.</div></div>
+                </section>
+            </div>
+
+            <div class="stack">
+                <section id="mobilePack" class="card">
+                    <div class="section-head">
+                        <div><div class="kicker">Для телефона</div><h2>Готовый набор ссылок</h2><p class="muted">Если удобнее сразу вставить несколько вариантов в мобильный Telegram, используй этот блок.</p></div>
+                        <div id="mobileSize" class="badge">Набор 0</div>
+                    </div>
+                    <div id="mobilePanel" class="state"><h3 class="state-title">Собираю набор</h3><div class="state-copy">Здесь появятся несколько ссылок в порядке от более надёжных к запасным.</div></div>
+                </section>
+
+                <section class="card">
+                    <div class="section-head">
+                        <div><div class="kicker">Запасные варианты</div><h2>Что попробовать дальше</h2><p class="muted">Короткий список на случай, если первый вариант не подошёл именно в твоей сети.</p></div>
+                        <div class="badge">Fallback list</div>
+                    </div>
+                    <div id="queuePanel" class="state"><h3 class="state-title">Собираю запасной список</h3><div class="state-copy">Здесь появятся следующие кандидаты без лишнего визуального шума.</div></div>
+                </section>
+            </div>
+        </section>
+        <section class="info-grid">
             <section class="card">
-                <div class="head"><div><h2 class="title">Быстрый старт</h2><p class="sub">Сначала пробуй верхний вариант. Если не зашел именно у тебя, переходи к следующему без лишнего поиска.</p></div><div id="desktopPos" class="tag">Маршрут 0 / 0</div></div>
-                <div id="desktopPanel" class="empty">Подбираю лучший маршрут...</div>
-            </section>
-            <section class="card">
-                <div class="head"><div><h2 class="title">Как читать статусы</h2><p class="sub">Интерфейс не обещает невозможного. Он просто помогает быстро понять, насколько можно доверять маршруту прямо сейчас.</p></div><div class="tag">Trust layer</div></div>
-                <div class="explain">
-                    <article class="explain-item"><h3>Verified</h3><p>Прошел глубокую MTProto-проверку. Это лучший первый кандидат для запуска Telegram.</p></article>
-                    <article class="explain-item"><h3>TCP only</h3><p>Маршрут отвечает, но полная MTProto-валидация не подтверждена. Используй как запасной путь.</p></article>
-                    <article class="explain-item"><h3>Score и задержка</h3><p>Score строится на истории проверок и фидбеке. Задержка показывает, насколько маршрут быстрый в последнем замере.</p></article>
+                <div class="section-head">
+                    <div><div class="kicker">Как читать статусы</div><h2>Понятные сигналы</h2><p class="muted">Статусы объясняют, с чего начинать и насколько вариант выглядит надёжным прямо сейчас.</p></div>
+                    <div class="badge">Trust layer</div>
+                </div>
+                <div class="info-block">
+                    <article class="info-item"><h3>Проверен Telegram</h3><p class="muted">Лучший первый выбор. Прокси прошёл полную проверку и должен быть в приоритете.</p></article>
+                    <article class="info-item"><h3>Запасной вариант</h3><p class="muted">Прокси отвечает и может сработать, но это уже fallback, а не главный кандидат.</p></article>
+                    <article class="info-item"><h3>Нет свежего подтверждения</h3><p class="muted">Данных недостаточно для уверенного старта. Используй, только если основные варианты не подошли.</p></article>
                 </div>
             </section>
-        </div>
-        <div class="stack">
-            <section class="card">
-                <div class="head"><div><h2 class="title">Пакет для телефона</h2><p class="sub">Если удобнее сразу вставить несколько вариантов в мобильный Telegram, используй готовый набор ссылок.</p></div><div id="mobileSize" class="tag">Пакет 0</div></div>
-                <div id="mobilePanel" class="empty">Собираю мобильный пакет...</div>
-            </section>
-            <section class="card">
-                <div class="head"><div><h2 class="title">Запасные маршруты</h2><p class="sub">Короткий список кандидатов на случай, если первый вариант нестабилен именно на твоей сети.</p></div><div class="tag">Top list</div></div>
-                <div id="queuePanel" class="empty">Готовлю запасной список...</div>
-            </section>
-        </div>
-    </section>
 
-    <section class="card steps-wrap">
-        <div class="head"><div><h2 class="title">Как этим пользоваться</h2><p class="sub">Сайт рассчитан на быстрый сценарий без лишних решений. Пользователь не должен читать форумы и сравнивать длинные raw-листы вручную.</p></div><div class="tag">3 шага</div></div>
-        <div class="steps">
-            <article class="step"><div class="step-num">1</div><h3>Открой верхний маршрут</h3><p>Если прокси отмечен как <strong>Verified</strong>, начинай с него. Обычно это лучший первый кандидат по качеству и свежести.</p></article>
-            <article class="step"><div class="step-num">2</div><h3>Если не зашло, переключайся</h3><p>Не копайся в полном каталоге. Используй кнопку перехода к следующему маршруту или готовый пакет для мобильного Telegram.</p></article>
-            <article class="step"><div class="step-num">3</div><h3>Оставь короткий фидбек</h3><p>Фидбек нужен не ради формы. Он влияет на ранжирование и помогает поднимать реально рабочие маршруты выше в выдаче.</p></article>
-        </div>
-    </section>
+            <section class="card">
+                <div class="section-head">
+                    <div><div class="kicker">Метрики доверия</div><h2>Почему сервису можно верить</h2><p class="muted">Технические детали оставлены вторичными, но доступны, если нужно понять качество выдачи.</p></div>
+                    <div class="badge">Metrics</div>
+                </div>
+                <div class="info-block">
+                    <article class="info-item"><h3>Score</h3><p class="muted">Итоговая оценка на базе проверок, истории успехов и обратной связи. Это вспомогательный сигнал, а не главный CTA.</p></article>
+                    <article class="info-item"><h3>Задержка</h3><p class="muted">Показывает, насколько быстро отвечал прокси на последней проверке. Низкая задержка приятнее, но не гарантирует успех у всех.</p></article>
+                    <article class="info-item"><h3>Последняя проверка</h3><p class="muted">Чем свежее отметка, тем актуальнее данные. Если вариант старый, лучше начать с верхней карточки или набора для телефона.</p></article>
+                </div>
+            </section>
+        </section>
+
+        <section class="card">
+            <div class="section-head">
+                <div><div class="kicker">FAQ</div><h2>Короткие ответы</h2><p class="muted">Без технического перегруза. Только то, что помогает быстрее подключиться.</p></div>
+                <div class="badge">4 answers</div>
+            </div>
+            <div class="faq">
+                <article class="faq-item"><h3>Что делать, если первый вариант не сработал?</h3><p>Нажми кнопку перехода к следующему прокси или открой блок с запасными вариантами. На телефоне проще сразу скопировать набор ссылок и попробовать их по очереди.</p></article>
+                <article class="faq-item"><h3>Почему прокси может работать у одного пользователя и не работать у другого?</h3><p>Результат зависит от провайдера, региона, типа сети и локальных ограничений. Поэтому сервис показывает не один адрес навсегда, а лучший текущий вариант и запасной список.</p></article>
+                <article class="faq-item"><h3>Что значит «проверен»?</h3><p>Это значит, что прокси недавно прошёл полную Telegram-проверку и сейчас выглядит самым надёжным кандидатом для первого запуска.</p></article>
+                <article class="faq-item"><h3>Как использовать набор для телефона?</h3><p>Скопируй tg:// или web-набор из блока для телефона и вставь ссылки в мобильный Telegram. Набор уже отсортирован по приоритету: сначала более сильные варианты, потом запасные.</p></article>
+            </div>
+        </section>
+    </div>
 </main>
 <div id="toast" class="toast"></div>
 <script>
-const BEST_API="/api/v1/proxies/best",STATS_API="/api/v1/proxies/stats",FEEDBACK_BASE="/api/v1/proxies",PACK_LIMIT=6,QUEUE_LIMIT=4;
-const state={proxies:[],stats:null,currentIndex:0,submitted:new Set()};
-const $=id=>document.getElementById(id);
-let toastTimer=null;
-function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
-function setStatus(msg,err=false){$("status").textContent=msg;$("status").classList.toggle("error",err)}
-function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),1800)}
-function empty(msg){return `<div class="empty">${esc(msg)}</div>`}
-function fmtCount(v){return Number(v??0).toLocaleString("ru-RU")}
-function fmtLatency(v){return v==null||v<0?"нет данных":`${v} мс`}
-function tone(v){if(v==null||v<0)return"bad";if(v<=140)return"good";if(v<=320)return"mid";return"bad"}
-function relTime(v){if(!v)return"нет данных";const d=new Date(v);if(Number.isNaN(d.getTime()))return"нет данных";const m=Math.round((Date.now()-d.getTime())/60000);if(m<=1)return"только что";if(m<60)return`${m} мин назад`;const h=Math.round(m/60);if(h<24)return`${h} ч назад`;return`${Math.round(h/24)} дн назад`}
-function vMeta(p){switch(p.verificationStatus){case"VERIFIED":return{label:"Verified",className:"verified",caption:"Подтвержден deep MTProto-check"};case"QUICK_OK":return{label:"TCP only",className:"quick",caption:"Маршрут отвечает, но deep-check не подтвердил его полностью"};default:return{label:"Unverified",className:"unverified",caption:"Свежего подтверждения пока нет"}}}
-function vRank(p){return p.verificationStatus==="VERIFIED"?0:p.verificationStatus==="QUICK_OK"?1:2}
-function normalizeProxy(raw){return{id:raw?.id??null,host:String(raw?.host??""),port:raw?.port??null,source:String(raw?.source??""),status:String(raw?.status??"UNKNOWN"),verificationStatus:String(raw?.verificationStatus??"UNVERIFIED"),score:raw?.score??null,lastLatencyMs:raw?.lastLatencyMs??null,lastCheckedAt:raw?.lastCheckedAt??null,lastSuccessAt:raw?.lastSuccessAt??null,consecutiveFailures:raw?.consecutiveFailures??0,consecutiveSuccesses:raw?.consecutiveSuccesses??0,telegramDeepLink:raw?.telegramDeepLink??"",telegramWebLink:raw?.telegramWebLink??""}}
-function normalizeStats(raw){return{aliveCount:raw?.aliveCount??0,verifiedCount:raw?.verifiedCount??0,recentChecks:raw?.recentChecks??{totalChecks:0,successfulDeepChecks:0,failedDeepChecks:0}}}
-function feedbackKey(id,platform){return`${id}:${platform}`}function hasFeedback(id,platform){return state.submitted.has(feedbackKey(id,platform))}function markFeedback(id,platform){state.submitted.add(feedbackKey(id,platform))}
-async function copyText(text){if(!text)throw new Error("Nothing to copy");if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return}const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.focus();t.select();const ok=document.execCommand("copy");t.remove();if(!ok)throw new Error("Copy failed")}
-async function readApiMessage(response,fallback){try{const body=await response.json();if(body&&typeof body.message==="string"&&body.message.trim())return body.message}catch{}return fallback}
-async function sendFeedback(id,result,platform){const r=await fetch(`${FEEDBACK_BASE}/${id}/feedback`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({result,platform})});if(!r.ok)throw new Error(await readApiMessage(r,`HTTP ${r.status}`));return r.json()}
-function updateMetrics(){const s=state.stats;const deep=(s?.recentChecks?.successfulDeepChecks??0)+(s?.recentChecks?.failedDeepChecks??0);const rate=deep===0?0:Math.round(((s?.recentChecks?.successfulDeepChecks??0)/deep)*100);$("heroCount").textContent=fmtCount(state.proxies.length);$("aliveCount").textContent=fmtCount(s?.aliveCount??0);$("verifiedCount").textContent=fmtCount(s?.verifiedCount??0);$("checksCount").textContent=fmtCount(s?.recentChecks?.totalChecks??0);$("deepRate").textContent=`${rate}%`}
-function current(){return state.proxies[state.currentIndex]||null}
-function buildPack(proxies,key){return proxies.map(p=>p[key]).filter(Boolean).join("\n")}
-function mobilePack(){return[...state.proxies].sort((a,b)=>{const rd=vRank(a)-vRank(b);if(rd!==0)return rd;const sd=(b.score??-1)-(a.score??-1);if(sd!==0)return sd;return(a.lastLatencyMs??Number.MAX_SAFE_INTEGER)-(b.lastLatencyMs??Number.MAX_SAFE_INTEGER)}).slice(0,PACK_LIMIT)}
-function renderDesktop(){const p=current(),total=state.proxies.length;$("desktopPos").textContent=`Маршрут ${total?state.currentIndex+1:0} / ${total}`;if(!p){$("desktopPanel").innerHTML=empty("Сейчас нет маршрута для быстрого старта.");return}const vm=vMeta(p),statusClass=p.status==="ALIVE"?"alive":"other",feedbackLocked=hasFeedback(p.id,"DESKTOP"),nextExists=state.currentIndex<total-1;$("desktopPanel").innerHTML=`<article class="panel"><div class="topline"><div><h3 class="addr">${esc(p.host)}:${esc(p.port)}</h3><p class="meta-note">${esc(vm.caption)}.</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="tagrow"><div class="pill ${statusClass}">${esc(p.status)}</div><div class="pill ${vm.className}">Score ${esc(p.score??"N/A")}</div><div class="pill ${vm.className}">${esc(p.source||"source unknown")}</div></div><div class="facts"><div class="fact"><div class="label">Задержка</div><div class="fact-value"><span class="dot ${tone(p.lastLatencyMs)}"></span>${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="fact"><div class="label">Последний успех</div><div class="fact-value">${esc(relTime(p.lastSuccessAt))}</div></div><div class="fact"><div class="label">Проверен</div><div class="fact-value">${esc(relTime(p.lastCheckedAt))}</div></div><div class="fact"><div class="label">Серия</div><div class="fact-value">${esc(p.consecutiveSuccesses??0)} ok / ${esc(p.consecutiveFailures??0)} fail</div></div></div><div class="actions"><a class="btn primary ${p.telegramDeepLink?"":"disabled"}" href="${esc(p.telegramDeepLink||"#")}">Открыть в Telegram</a><a class="btn ${p.telegramWebLink?"":"disabled"}" href="${esc(p.telegramWebLink||"#")}" target="_blank" rel="noreferrer">Открыть как ссылку</a><button class="btn secondary" id="copyCurrentBtn" type="button" ${p.telegramDeepLink||p.telegramWebLink?"":"disabled"}>Скопировать ссылку</button><button class="btn" id="nextBtn" type="button" ${nextExists?"":"disabled"}>${nextExists?"Попробовать следующий":"Это последний вариант"}</button></div><div class="feedback"><button class="btn goodbtn" id="desktopOk" type="button" ${feedbackLocked?"disabled":""}>Сработало</button><button class="btn badbtn" id="desktopFail" type="button" ${feedbackLocked?"disabled":""}>Не сработало</button></div><div class="micro">Сначала пробуй верхний маршрут. Если он не сработал именно у тебя, переключайся дальше по очереди без нового поиска.</div></article>`;
-const copyBtn=$("copyCurrentBtn");if(copyBtn)copyBtn.addEventListener("click",async()=>{try{await copyText(p.telegramDeepLink||p.telegramWebLink);toast("Ссылка скопирована")}catch{toast("Не удалось скопировать")}});
-const nextBtn=$("nextBtn");if(nextBtn&&nextExists)nextBtn.addEventListener("click",()=>{state.currentIndex+=1;renderDesktop();toast(`Открыт маршрут ${state.currentIndex+1}`)});
-const okBtn=$("desktopOk"),failBtn=$("desktopFail"),buttons=[okBtn,failBtn];const lock=()=>buttons.forEach(b=>b&&(b.disabled=true));async function handle(result){try{lock();await sendFeedback(p.id,result,"DESKTOP");markFeedback(p.id,"DESKTOP");toast(result==="WORKED"?"Фидбек сохранен: сработало":"Фидбек сохранен: не сработало")}catch(error){buttons.forEach(b=>b&&!feedbackLocked&&(b.disabled=false));toast(error?.message||"Не удалось отправить фидбек")}}if(okBtn)okBtn.addEventListener("click",()=>handle("WORKED"));if(failBtn)failBtn.addEventListener("click",()=>handle("FAILED"))}
-function renderMobile(){const list=mobilePack(),top=list[0]||null,feedbackLocked=top?hasFeedback(top.id,"MOBILE"):true;$("mobileSize").textContent=`Пакет ${list.length}`;if(!list.length){$("mobilePanel").innerHTML=empty("Пока нет данных, чтобы собрать мобильный пакет.");return}const cards=list.map(p=>{const vm=vMeta(p);return`<article class="proxy-card"><div class="proxy-top"><div><h3 class="proxy-title">${esc(p.host)}:${esc(p.port)}</h3><p class="proxy-copy">${esc(vm.caption)}</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(p.score??"N/A")}</div></div><div class="meta-cell"><div class="meta-label">Latency</div><div class="meta-value">${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Источник</div><div class="meta-value">${esc(p.source||"n/a")}</div></div></div></article>`}).join("");$("mobilePanel").innerHTML=`<div class="list">${cards}</div><div class="pack-actions"><button class="btn primary" id="copyPackBtn" type="button">Скопировать tg:// pack</button><button class="btn" id="copyWebPackBtn" type="button">Скопировать web pack</button></div><div class="feedback"><button class="btn goodbtn" id="mobileOk" type="button" ${top&&!feedbackLocked?"":"disabled"}>На телефоне сработало</button><button class="btn badbtn" id="mobileFail" type="button" ${top&&!feedbackLocked?"":"disabled"}>На телефоне не сработало</button></div><div class="micro">Пакет собирается в verified-first порядке: сначала более надежные маршруты, затем fallback-варианты.</div>`;
-$("copyPackBtn").addEventListener("click",async()=>{try{await copyText(buildPack(list,"telegramDeepLink"));toast("Пакет tg:// скопирован")}catch{toast("Не удалось скопировать пакет")}});
-$("copyWebPackBtn").addEventListener("click",async()=>{try{await copyText(buildPack(list,"telegramWebLink"));toast("Пакет web-ссылок скопирован")}catch{toast("Не удалось скопировать пакет")}});
-const okBtn=$("mobileOk"),failBtn=$("mobileFail"),buttons=[okBtn,failBtn];const lock=()=>buttons.forEach(b=>b&&(b.disabled=true));async function handle(result){if(!top)return;try{lock();await sendFeedback(top.id,result,"MOBILE");markFeedback(top.id,"MOBILE");toast(result==="WORKED"?"Мобильный фидбек сохранен":"Мобильный фидбек сохранен: не сработало")}catch(error){buttons.forEach(b=>b&&!feedbackLocked&&(b.disabled=false));toast(error?.message||"Не удалось отправить фидбек")}}if(okBtn&&top&&!feedbackLocked)okBtn.addEventListener("click",()=>handle("WORKED"));if(failBtn&&top&&!feedbackLocked)failBtn.addEventListener("click",()=>handle("FAILED"))}
-function renderQueue(){const list=state.proxies.slice(1,QUEUE_LIMIT+1);if(!list.length){$("queuePanel").innerHTML=empty("Пока нет отдельного короткого списка запасных маршрутов.");return}$("queuePanel").innerHTML=`<div class="list">${list.map((p,i)=>{const vm=vMeta(p);return`<article class="queue-item"><div class="queue-top"><div><h3 class="queue-title">#${i+2} ${esc(p.host)}:${esc(p.port)}</h3><p class="queue-copy">${esc(vm.caption)}</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(p.score??"N/A")}</div></div><div class="meta-cell"><div class="meta-label">Latency</div><div class="meta-value">${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Проверен</div><div class="meta-value">${esc(relTime(p.lastCheckedAt))}</div></div></div></article>`}).join("")}</div>`}
-function renderAll(){updateMetrics();renderDesktop();renderMobile();renderQueue()}
-async function loadData(){setStatus("Загружаю лучшие маршруты и статистику...");try{const[bestRes,statsRes]=await Promise.all([fetch(BEST_API,{headers:{Accept:"application/json"}}),fetch(STATS_API,{headers:{Accept:"application/json"}})]);if(!bestRes.ok)throw new Error(await readApiMessage(bestRes,`Best HTTP ${bestRes.status}`));if(!statsRes.ok)throw new Error(await readApiMessage(statsRes,`Stats HTTP ${statsRes.status}`));const[bestData,statsData]=await Promise.all([bestRes.json(),statsRes.json()]);state.proxies=Array.isArray(bestData)?bestData.map(normalizeProxy).filter(p=>p.host&&p.port!=null):[];state.stats=normalizeStats(statsData);state.currentIndex=0;if(!state.proxies.length){updateMetrics();$("desktopPanel").innerHTML=empty("Сейчас нет прокси, которые можно показать пользователю.");$("mobilePanel").innerHTML=empty("Мобильный пакет пока пуст.");$("queuePanel").innerHTML=empty("Запасной список пока пуст.");setStatus("Каталог пока пуст. Источники или проверки еще не наполнили выдачу.",true);return}renderAll();const verified=state.proxies.filter(p=>p.verificationStatus==="VERIFIED").length;setStatus(`Загружено ${state.proxies.length} лучших маршрутов, из них ${verified} verified. Начинай с верхнего варианта.`)}catch(error){$("heroCount").textContent="0";$("aliveCount").textContent="0";$("verifiedCount").textContent="0";$("checksCount").textContent="0";$("deepRate").textContent="0%";$("desktopPanel").innerHTML=empty("Не удалось загрузить быстрый старт.");$("mobilePanel").innerHTML=empty("Не удалось собрать мобильный пакет.");$("queuePanel").innerHTML=empty("Не удалось получить запасные маршруты.");setStatus(error?.message||"Не удалось загрузить данные. Проверь, что backend доступен и API отвечает.",true);console.error(error)}}
+const BEST_API = "/api/v1/proxies/best";
+const STATS_API = "/api/v1/proxies/stats";
+const FEEDBACK_BASE = "/api/v1/proxies";
+const PACK_LIMIT = 6;
+const QUEUE_LIMIT = 4;
+
+const state = { proxies: [], stats: null, currentIndex: 0, submitted: new Set() };
+const $ = (id) => document.getElementById(id);
+let toastTimer = null;
+
+function esc(value) {
+    return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+}
+function setStatus(message, isError = false) { $("status").textContent = message; $("status").classList.toggle("error", isError); }
+function showToast(message) { $("toast").textContent = message; $("toast").classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2200); }
+function renderState(title, copy, actionHtml = "") { return `<div class="state"><h3 class="state-title">${esc(title)}</h3><div class="state-copy">${esc(copy)}</div>${actionHtml}</div>`; }
+function fmtCount(value) { return Number(value ?? 0).toLocaleString("ru-RU"); }
+function fmtLatency(value) { return value == null || value < 0 ? "нет данных" : `${value} мс`; }
+function relTime(value) { if (!value) return "нет данных"; const date = new Date(value); if (Number.isNaN(date.getTime())) return "нет данных"; const minutes = Math.round((Date.now() - date.getTime()) / 60000); if (minutes <= 1) return "только что"; if (minutes < 60) return `${minutes} мин назад`; const hours = Math.round(minutes / 60); if (hours < 24) return `${hours} ч назад`; return `${Math.round(hours / 24)} дн назад`; }
+function verificationMeta(proxy) { switch (proxy.verificationStatus) { case "VERIFIED": return { label: "Проверен Telegram", className: "is-verified", caption: "Прошёл полную Telegram-проверку и подходит как основной вариант." }; case "QUICK_OK": return { label: "Запасной вариант", className: "is-fallback", caption: "Отвечал на быстрой проверке, но лучше использовать как fallback." }; default: return { label: "Нет свежего подтверждения", className: "is-unconfirmed", caption: "Свежего подтверждения пока нет. Держи как последний резерв." }; } }
+function verificationRank(proxy) { return proxy.verificationStatus === "VERIFIED" ? 0 : proxy.verificationStatus === "QUICK_OK" ? 1 : 2; }
+function normalizeProxy(raw) { return { id: raw?.id ?? null, host: String(raw?.host ?? ""), port: raw?.port ?? null, source: String(raw?.source ?? ""), status: String(raw?.status ?? "UNKNOWN"), verificationStatus: String(raw?.verificationStatus ?? "UNVERIFIED"), score: raw?.score ?? null, lastLatencyMs: raw?.lastLatencyMs ?? null, lastCheckedAt: raw?.lastCheckedAt ?? null, lastSuccessAt: raw?.lastSuccessAt ?? null, consecutiveFailures: raw?.consecutiveFailures ?? 0, consecutiveSuccesses: raw?.consecutiveSuccesses ?? 0, telegramDeepLink: raw?.telegramDeepLink ?? "", telegramWebLink: raw?.telegramWebLink ?? "" }; }
+function normalizeStats(raw) { return { aliveCount: raw?.aliveCount ?? 0, verifiedCount: raw?.verifiedCount ?? 0, recentChecks: raw?.recentChecks ?? { totalChecks: 0, successfulDeepChecks: 0, failedDeepChecks: 0 } }; }
+function feedbackKey(id, platform) { return `${id}:${platform}`; }
+function hasFeedback(id, platform) { return state.submitted.has(feedbackKey(id, platform)); }
+function markFeedback(id, platform) { state.submitted.add(feedbackKey(id, platform)); }
+async function copyText(text) { if (!text) throw new Error("Nothing to copy"); if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); return; } const area = document.createElement("textarea"); area.value = text; area.style.position = "fixed"; area.style.opacity = "0"; document.body.appendChild(area); area.focus(); area.select(); const copied = document.execCommand("copy"); area.remove(); if (!copied) throw new Error("Copy failed"); }
+async function readApiMessage(response, fallback) { try { const body = await response.json(); if (body && typeof body.message === "string" && body.message.trim()) return body.message; } catch {} return fallback; }
+async function sendFeedback(id, result, platform) { const response = await fetch(`${FEEDBACK_BASE}/${id}/feedback`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ result, platform }) }); if (!response.ok) throw new Error(await readApiMessage(response, `HTTP ${response.status}`)); return response.json(); }
+function currentProxy() { return state.proxies[state.currentIndex] || null; }
+function workingProxyCount() { return state.proxies.filter((proxy) => proxy.status === "ALIVE").length; }
+function buildPack(proxies, key) { return proxies.map((proxy) => proxy[key]).filter(Boolean).join("\n"); }
+function mobilePack() { return [...state.proxies].sort((left, right) => { const rankDiff = verificationRank(left) - verificationRank(right); if (rankDiff !== 0) return rankDiff; const scoreDiff = (right.score ?? -1) - (left.score ?? -1); if (scoreDiff !== 0) return scoreDiff; return (left.lastLatencyMs ?? Number.MAX_SAFE_INTEGER) - (right.lastLatencyMs ?? Number.MAX_SAFE_INTEGER); }).slice(0, PACK_LIMIT); }
+function updateMetrics() { const stats = state.stats; const deepChecks = (stats?.recentChecks?.successfulDeepChecks ?? 0) + (stats?.recentChecks?.failedDeepChecks ?? 0); const deepRate = deepChecks === 0 ? 0 : Math.round(((stats?.recentChecks?.successfulDeepChecks ?? 0) / deepChecks) * 100); $("heroCount").textContent = fmtCount(state.proxies.length); $("verifiedCount").textContent = fmtCount(stats?.verifiedCount ?? 0); $("aliveCount").textContent = fmtCount(stats?.aliveCount ?? 0); $("checksCount").textContent = fmtCount(stats?.recentChecks?.totalChecks ?? 0); $("deepRate").textContent = `${deepRate}%`; }
+function bindFeedback(proxy, platform, okId, failId, messages) {
+    const okButton = $(okId);
+    const failButton = $(failId);
+    const buttons = [okButton, failButton];
+    const alreadySent = hasFeedback(proxy.id, platform);
+    async function handle(result) {
+        try {
+            buttons.forEach((button) => { if (button) button.disabled = true; });
+            await sendFeedback(proxy.id, result, platform);
+            markFeedback(proxy.id, platform);
+            showToast(result === "WORKED" ? messages.success : messages.failure);
+        } catch (error) {
+            if (!alreadySent) buttons.forEach((button) => { if (button) button.disabled = false; });
+            showToast(error?.message || "Не удалось отправить отзыв");
+        }
+    }
+    if (okButton && !alreadySent) okButton.addEventListener("click", () => handle("WORKED"));
+    if (failButton && !alreadySent) failButton.addEventListener("click", () => handle("FAILED"));
+}
+
+function renderBestProxy() {
+    const proxy = currentProxy();
+    const total = state.proxies.length;
+    $("desktopPos").textContent = `Вариант ${total ? state.currentIndex + 1 : 0} / ${total}`;
+    if (!proxy) {
+        $("desktopPanel").innerHTML = renderState("Подходящий прокси не найден", "Сейчас сервис не может показать основной вариант для запуска Telegram.");
+        return;
+    }
+
+    const meta = verificationMeta(proxy);
+    const feedbackLocked = hasFeedback(proxy.id, "DESKTOP");
+    const hasNext = state.currentIndex < total - 1;
+    const hasAnyLink = Boolean(proxy.telegramDeepLink || proxy.telegramWebLink);
+    const aliveNote = proxy.status === "ALIVE" ? "Прокси отвечал на последней проверке." : "Прокси есть в каталоге, но свежий ответ не подтверждён.";
+
+    $("desktopPanel").innerHTML = `
+        <div class="best-card">
+            <article class="best-main">
+                <div class="best-top">
+                    <div>
+                        <div class="kicker">Основной вариант</div>
+                        <h3 class="proxy-address">${esc(proxy.host)}:${esc(proxy.port)}</h3>
+                        <div class="status-note">${esc(meta.caption)} ${esc(aliveNote)}</div>
+                    </div>
+                    <div class="status-pill ${meta.className}">${esc(meta.label)}</div>
+                </div>
+                <div class="facts">
+                    <div class="fact"><div class="meta-label">Последняя проверка</div><div class="fact-value">${esc(relTime(proxy.lastCheckedAt))}</div></div>
+                    <div class="fact"><div class="meta-label">Последний успех</div><div class="fact-value">${esc(relTime(proxy.lastSuccessAt))}</div></div>
+                    <div class="fact"><div class="meta-label">Задержка</div><div class="fact-value">${esc(fmtLatency(proxy.lastLatencyMs))}</div></div>
+                    <div class="fact"><div class="meta-label">Score</div><div class="fact-value">${esc(proxy.score ?? "N/A")}</div></div>
+                </div>
+                <div class="btn-row">
+                    <a class="btn primary ${proxy.telegramDeepLink ? "" : "disabled"}" href="${esc(proxy.telegramDeepLink || "#")}">Открыть в Telegram</a>
+                    <a class="btn secondary ${proxy.telegramWebLink ? "" : "disabled"}" href="${esc(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer">Открыть как ссылку</a>
+                    <button class="btn secondary" id="copyCurrentBtn" type="button" ${hasAnyLink ? "" : "disabled"}>Скопировать ссылку</button>
+                    <button class="btn" id="nextBtn" type="button" ${hasNext ? "" : "disabled"}>${hasNext ? "Попробовать следующий" : "Это последний вариант"}</button>
+                </div>
+                <div class="feedback-row">
+                    <button class="btn safe" id="desktopOk" type="button" ${feedbackLocked ? "disabled" : ""}>Сработало</button>
+                    <button class="btn danger" id="desktopFail" type="button" ${feedbackLocked ? "disabled" : ""}>Не сработало</button>
+                </div>
+                <div class="mini-copy">Если этот вариант не подошёл, не возвращайся к ручному поиску. Просто открой следующий прокси или возьми запасной список справа.</div>
+            </article>
+        </div>
+    `;
+
+    const copyButton = $("copyCurrentBtn");
+    if (copyButton) copyButton.addEventListener("click", async () => { try { await copyText(proxy.telegramDeepLink || proxy.telegramWebLink); showToast("Ссылка скопирована"); } catch { showToast("Не удалось скопировать ссылку"); } });
+    const nextButton = $("nextBtn");
+    if (nextButton && hasNext) nextButton.addEventListener("click", () => { state.currentIndex += 1; renderBestProxy(); showToast(`Переключено на вариант ${state.currentIndex + 1}`); setStatus("Основной вариант не подошёл? Карточка переключена на следующий прокси.", false); });
+    bindFeedback(proxy, "DESKTOP", "desktopOk", "desktopFail", { success: "Отзыв сохранён: основной вариант сработал", failure: "Отзыв сохранён: основной вариант не сработал" });
+}
+
+function renderMobilePack() {
+    const pack = mobilePack();
+    const topProxy = pack[0] || null;
+    const feedbackLocked = topProxy ? hasFeedback(topProxy.id, "MOBILE") : true;
+    $("mobileSize").textContent = `Набор ${pack.length}`;
+    if (!pack.length) {
+        $("mobilePanel").innerHTML = renderState("Набор для телефона пока пуст", "Сейчас сервис не собрал достаточно данных для мобильного сценария.");
+        return;
+    }
+
+    const cards = pack.map((proxy, index) => {
+        const meta = verificationMeta(proxy);
+        return `<article class="mini-card"><div class="mini-head"><div><h3 class="mini-title">#${index + 1} ${esc(proxy.host)}:${esc(proxy.port)}</h3><div class="mini-copy">${esc(meta.caption)}</div></div><div class="status-pill ${meta.className}">${esc(meta.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(proxy.score ?? "N/A")}</div></div><div class="meta-cell"><div class="meta-label">Задержка</div><div class="meta-value">${esc(fmtLatency(proxy.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Проверка</div><div class="meta-value">${esc(relTime(proxy.lastCheckedAt))}</div></div></div></article>`;
+    }).join("");
+
+    $("mobilePanel").innerHTML = `<div class="list">${cards}</div><div class="pack-actions"><button class="btn primary" id="copyPackBtn" type="button">Скопировать tg:// набор</button><button class="btn secondary" id="copyWebPackBtn" type="button">Скопировать web-набор</button></div><div class="feedback-row"><button class="btn safe" id="mobileOk" type="button" ${topProxy && !feedbackLocked ? "" : "disabled"}>На телефоне сработало</button><button class="btn danger" id="mobileFail" type="button" ${topProxy && !feedbackLocked ? "" : "disabled"}>На телефоне не сработало</button></div><div class="mini-copy">Набор отсортирован по приоритету: сначала более надёжные прокси, затем запасные.</div>`;
+    $("copyPackBtn").addEventListener("click", async () => { try { await copyText(buildPack(pack, "telegramDeepLink")); showToast("tg:// набор скопирован"); } catch { showToast("Не удалось скопировать tg:// набор"); } });
+    $("copyWebPackBtn").addEventListener("click", async () => { try { await copyText(buildPack(pack, "telegramWebLink")); showToast("Web-набор скопирован"); } catch { showToast("Не удалось скопировать web-набор"); } });
+    if (topProxy) bindFeedback(topProxy, "MOBILE", "mobileOk", "mobileFail", { success: "Отзыв сохранён: мобильный набор сработал", failure: "Отзыв сохранён: мобильный набор не сработал" });
+}
+
+function renderQueue() {
+    const queue = state.proxies.slice(1, QUEUE_LIMIT + 1);
+    if (!queue.length) {
+        $("queuePanel").innerHTML = renderState("Запасных вариантов пока нет", "Если появятся дополнительные кандидаты, они будут показаны здесь.");
+        return;
+    }
+    $("queuePanel").innerHTML = `<div class="list">${queue.map((proxy, index) => { const meta = verificationMeta(proxy); return `<article class="mini-card"><div class="mini-head"><div><h3 class="mini-title">#${index + 2} ${esc(proxy.host)}:${esc(proxy.port)}</h3><div class="mini-copy">${esc(meta.caption)}</div></div><div class="status-pill ${meta.className}">${esc(meta.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(proxy.score ?? "N/A")}</div></div><div class="meta-cell"><div class="meta-label">Задержка</div><div class="meta-value">${esc(fmtLatency(proxy.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Проверка</div><div class="meta-value">${esc(relTime(proxy.lastCheckedAt))}</div></div></div></article>`; }).join("")}</div>`;
+}
+function renderNoDataState(message, statusMessage) {
+    updateMetrics();
+    $("desktopPanel").innerHTML = renderState("Сейчас нет рабочих прокси", message);
+    $("mobilePanel").innerHTML = renderState("Набор для телефона недоступен", "Когда появятся подходящие прокси, здесь соберётся готовый пакет ссылок.");
+    $("queuePanel").innerHTML = renderState("Запасной список пуст", "Сервис пока не получил кандидатов для fallback-сценария.");
+    setStatus(statusMessage, true);
+}
+
+function renderAll() {
+    updateMetrics();
+    renderBestProxy();
+    renderMobilePack();
+    renderQueue();
+}
+
+async function loadData() {
+    setStatus("Загружаю лучший прокси, мобильный набор и запасные варианты...");
+    try {
+        const [bestResponse, statsResponse] = await Promise.all([
+            fetch(BEST_API, { headers: { Accept: "application/json" } }),
+            fetch(STATS_API, { headers: { Accept: "application/json" } })
+        ]);
+
+        if (!bestResponse.ok) throw new Error(await readApiMessage(bestResponse, `Best HTTP ${bestResponse.status}`));
+        if (!statsResponse.ok) throw new Error(await readApiMessage(statsResponse, `Stats HTTP ${statsResponse.status}`));
+
+        const [bestData, statsData] = await Promise.all([bestResponse.json(), statsResponse.json()]);
+        state.proxies = Array.isArray(bestData) ? bestData.map(normalizeProxy).filter((proxy) => proxy.host && proxy.port != null) : [];
+        state.stats = normalizeStats(statsData);
+        state.currentIndex = 0;
+
+        if (!state.proxies.length) {
+            renderNoDataState(
+                "Каталог пуст или источники ещё не отдали подходящие варианты.",
+                "Сейчас в каталоге нет прокси для показа. Проверь позже, когда обновятся источники и проверки."
+            );
+            return;
+        }
+
+        renderAll();
+        const verified = state.proxies.filter((proxy) => proxy.verificationStatus === "VERIFIED").length;
+        const working = workingProxyCount();
+
+        if (!working) {
+            setStatus(`Загружено ${state.proxies.length} вариантов, но сейчас нет свежего подтверждения, что они отвечают. Начинай с верхней карточки как с лучшей доступной попытки.`, true);
+            return;
+        }
+
+        setStatus(`Загружено ${state.proxies.length} вариантов. Проверены Telegram: ${verified}. Живые сейчас: ${working}. Начинай с главной карточки.`, false);
+    } catch (error) {
+        $("heroCount").textContent = "0";
+        $("verifiedCount").textContent = "0";
+        $("aliveCount").textContent = "0";
+        $("checksCount").textContent = "0";
+        $("deepRate").textContent = "0%";
+
+        const retryHtml = `<button class="btn primary" id="retryBtn" type="button">Повторить загрузку</button>`;
+        $("desktopPanel").innerHTML = renderState("Не удалось загрузить основной вариант", "Страница не получила данные от backend API.", retryHtml);
+        $("mobilePanel").innerHTML = renderState("Набор для телефона недоступен", "Пока нет ответа API, мобильный пакет собрать нельзя.");
+        $("queuePanel").innerHTML = renderState("Запасные варианты недоступны", "Невозможно показать fallback-список, пока backend не ответит.");
+
+        const retryButton = $("retryBtn");
+        if (retryButton) retryButton.addEventListener("click", () => loadData());
+
+        setStatus(error?.message || "Не удалось загрузить данные. Проверь доступность backend API.", true);
+        console.error(error);
+    }
+}
+
 loadData();
 </script>
 </body>
