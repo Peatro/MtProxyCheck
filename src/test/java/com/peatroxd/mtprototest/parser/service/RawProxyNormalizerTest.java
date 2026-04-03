@@ -13,9 +13,9 @@ class RawProxyNormalizerTest {
     @Test
     void shouldNormalizeHostSecretAndKeepValidProxy() {
         RawProxy rawProxy = RawProxy.builder()
-                .host(" example.com. ")
+                .host(" Example.com. ")
                 .port(443)
-                .secret(" abcdef ")
+                .secret(" ABCDEF ")
                 .type(ProxyType.MTPROTO)
                 .source("test")
                 .build();
@@ -25,6 +25,45 @@ class RawProxyNormalizerTest {
         assertThat(normalized.host()).isEqualTo("example.com");
         assertThat(normalized.secret()).isEqualTo("abcdef");
         assertThat(normalized.port()).isEqualTo(443);
+    }
+
+    @Test
+    void shouldNormalizeIpv6BracketsAndRemoveBase64Padding() {
+        RawProxy rawProxy = RawProxy.builder()
+                .host(" [2001:db8::1]. ")
+                .port(443)
+                .secret(" FgMBAgABAAH8AwOG4kw63Q== ")
+                .type(ProxyType.MTPROTO)
+                .source("test")
+                .build();
+
+        RawProxy normalized = normalizer.normalize(rawProxy).orElseThrow();
+
+        assertThat(normalized.host()).isEqualTo("2001:db8::1");
+        assertThat(normalized.secret()).isEqualTo("FgMBAgABAAH8AwOG4kw63Q");
+    }
+
+    @Test
+    void shouldTreatEquivalentSecretsFromDifferentFeedsTheSameAfterNormalization() {
+        RawProxy first = normalizer.normalize(RawProxy.builder()
+                .host("Example.com")
+                .port(443)
+                .secret("FgMBAgABAAH8AwOG4kw63Q==")
+                .type(ProxyType.MTPROTO)
+                .source("feed_a")
+                .build()).orElseThrow();
+
+        RawProxy second = normalizer.normalize(RawProxy.builder()
+                .host("example.com.")
+                .port(443)
+                .secret("FgMBAgABAAH8AwOG4kw63Q")
+                .type(ProxyType.MTPROTO)
+                .source("feed_b")
+                .build()).orElseThrow();
+
+        assertThat(first.host()).isEqualTo(second.host());
+        assertThat(first.port()).isEqualTo(second.port());
+        assertThat(first.secret()).isEqualTo(second.secret());
     }
 
     @Test
