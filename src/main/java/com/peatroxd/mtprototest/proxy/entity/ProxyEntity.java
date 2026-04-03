@@ -2,6 +2,7 @@ package com.peatroxd.mtprototest.proxy.entity;
 
 import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
 import com.peatroxd.mtprototest.proxy.enums.ProxyType;
+import com.peatroxd.mtprototest.proxy.enums.ProxyModerationStatus;
 import com.peatroxd.mtprototest.proxy.enums.ProxyVerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -56,6 +57,10 @@ public class ProxyEntity {
     @Column(name = "verification_status", nullable = false)
     private ProxyVerificationStatus verificationStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moderation_status", nullable = false)
+    private ProxyModerationStatus moderationStatus;
+
     @Column(name = "last_latency_ms")
     private Long lastLatencyMs;
 
@@ -94,6 +99,9 @@ public class ProxyEntity {
         }
         if (verificationStatus == null) {
             verificationStatus = ProxyVerificationStatus.UNVERIFIED;
+        }
+        if (moderationStatus == null) {
+            moderationStatus = ProxyModerationStatus.NORMAL;
         }
         if (consecutiveFailures == null) {
             consecutiveFailures = 0;

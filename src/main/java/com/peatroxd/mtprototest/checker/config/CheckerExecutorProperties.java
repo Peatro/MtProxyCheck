@@ -12,6 +12,8 @@ public class CheckerExecutorProperties {
     private int corePoolSize = 16;
     private int maxPoolSize = 32;
     private int queueCapacity = 200;
+    private int effectiveConcurrency = 0;
+    private int submissionWindowSize = 0;
     private int awaitTerminationSeconds = 30;
     private String threadNamePrefix = "proxy-checker-";
 

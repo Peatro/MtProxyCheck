@@ -2,6 +2,7 @@ package com.peatroxd.mtprototest.bootstrap;
 
 import com.peatroxd.mtprototest.checker.model.ProxyBatchCheckSummary;
 import com.peatroxd.mtprototest.checker.service.ProxyBatchCheckService;
+import com.peatroxd.mtprototest.checker.service.ProxyCheckRunCoordinator;
 import com.peatroxd.mtprototest.parser.service.ProxyImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,8 @@ public class ProxyStartupBootstrap implements ApplicationRunner {
 
     private final ProxyImportService proxyImportService;
     private final ProxyBatchCheckService proxyBatchCheckService;
+    private final ProxyCheckRunCoordinator proxyCheckRunCoordinator;
+    private final StartupProperties startupProperties;
 
     @Override
     public void run(@NonNull ApplicationArguments args) {
@@ -26,13 +29,26 @@ public class ProxyStartupBootstrap implements ApplicationRunner {
 
         proxyImportService.importAll();
 
-        ProxyBatchCheckSummary summary = proxyBatchCheckService.checkAllProxies();
-        log.info(
-                "Startup proxy bootstrap finished: total={}, quickOk={}, verified={}, dead={}",
-                summary.totalChecked(),
-                summary.quickOkCount(),
-                summary.verifiedCount(),
-                summary.deadCount()
-        );
+        if (!proxyCheckRunCoordinator.tryStartCatalogCycle("startup proxy bootstrap")) {
+            return;
+        }
+
+        try {
+            ProxyBatchCheckSummary summary = proxyBatchCheckService.checkStartupProxies(
+                    startupProperties.getCheckBatchSize(),
+                    startupProperties.getDeepProbeLimit()
+            );
+            log.info(
+                    "Startup proxy bootstrap finished: total={}, quickOk={}, verified={}, dead={}, batchSize={}, deepProbeLimit={}",
+                    summary.totalChecked(),
+                    summary.quickOkCount(),
+                    summary.verifiedCount(),
+                    summary.deadCount(),
+                    startupProperties.getCheckBatchSize(),
+                    startupProperties.getDeepProbeLimit()
+            );
+        } finally {
+            proxyCheckRunCoordinator.finishCatalogCycle();
+        }
     }
 }

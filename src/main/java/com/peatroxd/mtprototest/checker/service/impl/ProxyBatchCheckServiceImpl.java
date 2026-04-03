@@ -1,16 +1,16 @@
 package com.peatroxd.mtprototest.checker.service.impl;
 
 import com.peatroxd.mtprototest.checker.config.CheckerProperties;
+import com.peatroxd.mtprototest.checker.config.CheckerExecutorProperties;
 import com.peatroxd.mtprototest.checker.enums.ProxyCheckType;
-import com.peatroxd.mtprototest.checker.model.MtProtoDeepProbeResult;
 import com.peatroxd.mtprototest.checker.model.ProxyBatchCheckSummary;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckExecution;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckHistoryRecord;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckResult;
-import com.peatroxd.mtprototest.checker.service.MtProtoDeepProbeService;
 import com.peatroxd.mtprototest.checker.service.ProxyBatchCheckService;
+import com.peatroxd.mtprototest.checker.service.ProxyCheckExecutionService;
 import com.peatroxd.mtprototest.checker.service.ProxyCheckUpdateService;
-import com.peatroxd.mtprototest.checker.service.ProxyConnectivityChecker;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import com.peatroxd.mtprototest.proxy.enums.ProxyStatus;
@@ -35,102 +35,148 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
 
     private final ProxyRepository proxyRepository;
-    private final ProxyConnectivityChecker proxyConnectivityChecker;
-    private final MtProtoDeepProbeService mtProtoDeepProbeService;
+    private final ProxyCheckExecutionService proxyCheckExecutionService;
     private final ProxyCheckUpdateService proxyCheckUpdateService;
     private final Executor proxyCheckerExecutor;
+    private final CheckerExecutorProperties checkerExecutorProperties;
     private final CheckerProperties checkerProperties;
     private final ProxyMetricsService proxyMetricsService;
+    private final PublicCatalogCacheService publicCatalogCacheService;
 
     @Override
     public ProxyBatchCheckSummary checkAllProxies() {
-        return checkProxies(proxyRepository.findAllByOrderByIdAsc(), "all proxies");
+        return checkAndRefreshCatalog(
+                proxyRepository.findAllByOrderByIdAsc(),
+                "all proxies",
+                checkerProperties.getDeepProbeLimit()
+        );
+    }
+
+    @Override
+    public ProxyBatchCheckSummary checkStartupProxies(int batchSize, int deepProbeLimit) {
+        return checkAndRefreshCatalog(
+                proxyRepository.findStartupBatch(PageRequest.of(0, batchSize)),
+                "startup candidate proxies",
+                deepProbeLimit
+        );
     }
 
     @Override
     public ProxyBatchCheckSummary checkNewProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatus(
                         ProxyStatus.NEW,
                         PageRequest.of(0, checkerProperties.getBatchSize())
                 ),
-                "NEW proxies"
+                "NEW proxies",
+                checkerProperties.getDeepProbeLimit()
         );
     }
 
     @Override
     public ProxyBatchCheckSummary checkAliveQuickOkProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusAndVerificationStatus(
                         ProxyStatus.ALIVE,
                         ProxyVerificationStatus.QUICK_OK,
                         LocalDateTime.now().minusNanos(checkerProperties.getAliveQuickOkRecheckAfterMs() * 1_000_000),
                         PageRequest.of(0, checkerProperties.getBatchSize())
                 ),
-                "ALIVE QUICK_OK proxies"
+                "ALIVE QUICK_OK proxies",
+                checkerProperties.getDeepProbeLimit()
         );
     }
 
     @Override
     public ProxyBatchCheckSummary checkAliveVerifiedProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusAndVerificationStatus(
                         ProxyStatus.ALIVE,
                         ProxyVerificationStatus.VERIFIED,
                         LocalDateTime.now().minusNanos(checkerProperties.getAliveVerifiedRecheckAfterMs() * 1_000_000),
                         PageRequest.of(0, checkerProperties.getBatchSize())
                 ),
-                "ALIVE VERIFIED proxies"
+                "ALIVE VERIFIED proxies",
+                checkerProperties.getDeepProbeLimit()
         );
     }
 
     @Override
     public ProxyBatchCheckSummary checkDeadProxies() {
-        return checkProxies(
+        return checkAndRefreshCatalog(
                 proxyRepository.findLifecycleBatchByStatusBefore(
                         ProxyStatus.DEAD,
                         LocalDateTime.now().minusNanos(checkerProperties.getDeadRetryAfterMs() * 1_000_000),
                         PageRequest.of(0, checkerProperties.getBatchSize())
                 ),
-                "DEAD proxies"
+                "DEAD proxies",
+                checkerProperties.getDeepProbeLimit()
         );
     }
 
-    private ProxyBatchCheckSummary checkProxies(List<ProxyEntity> proxies, String selectionLabel) {
+    private ProxyBatchCheckSummary checkAndRefreshCatalog(
+            List<ProxyEntity> proxies,
+            String selectionLabel,
+            int deepProbeLimit
+    ) {
+        ProxyBatchCheckSummary summary = checkProxies(proxies, selectionLabel, deepProbeLimit);
+        if (summary.totalChecked() > 0) {
+            publicCatalogCacheService.evictPublicCatalogViews();
+        }
+        return summary;
+    }
+
+    private ProxyBatchCheckSummary checkProxies(
+            List<ProxyEntity> proxies,
+            String selectionLabel,
+            int deepProbeLimit
+    ) {
         if (proxies.isEmpty()) {
             log.info("No {} found for checking", selectionLabel);
             return ProxyBatchCheckSummary.empty();
         }
 
-        log.info("Checking {} {} asynchronously", proxies.size(), selectionLabel);
+        int effectiveConcurrency = resolveEffectiveConcurrency();
+        int submissionWindowSize = resolveSubmissionWindowSize(effectiveConcurrency);
+
+        log.info(
+                "Checking {} {} with effectiveConcurrency={} and submissionWindowSize={}",
+                proxies.size(),
+                selectionLabel,
+                effectiveConcurrency,
+                submissionWindowSize
+        );
 
         AtomicInteger quickOkCount = new AtomicInteger();
         AtomicInteger verifiedCount = new AtomicInteger();
         AtomicInteger deadCount = new AtomicInteger();
         AtomicInteger deepProbesStarted = new AtomicInteger();
 
-        List<CompletableFuture<Void>> futures = proxies.stream()
-                .map(proxy -> CompletableFuture
-                        .supplyAsync(() -> checkProxy(proxy, deepProbesStarted), proxyCheckerExecutor)
-                        .exceptionally(error -> failedExecution(proxy, error))
-                        .thenAccept(execution -> {
-                            proxyCheckUpdateService.applyExecution(proxy.getId(), execution);
-                            ProxyCheckResult result = execution.finalResult();
+        for (int startIndex = 0; startIndex < proxies.size(); startIndex += submissionWindowSize) {
+            int endIndex = Math.min(startIndex + submissionWindowSize, proxies.size());
+            List<CompletableFuture<Void>> futures = proxies.subList(startIndex, endIndex).stream()
+                    .map(proxy -> CompletableFuture
+                            .supplyAsync(() -> checkProxy(proxy, deepProbesStarted, deepProbeLimit), proxyCheckerExecutor)
+                            .exceptionally(error -> failedExecution(proxy, error))
+                            .thenAccept(execution -> {
+                                proxyCheckUpdateService.applyExecution(proxy.getId(), execution);
+                                ProxyCheckResult result = execution.finalResult();
 
-                            if (!result.alive()) {
-                                deadCount.incrementAndGet();
-                                proxyMetricsService.incrementCheckFailure();
-                            } else if (result.verificationStatus() == ProxyVerificationStatus.VERIFIED) {
-                                verifiedCount.incrementAndGet();
-                                proxyMetricsService.incrementCheckSuccess();
-                            } else {
-                                quickOkCount.incrementAndGet();
-                                proxyMetricsService.incrementCheckSuccess();
-                            }
-                        }))
-                .toList();
+                                if (!result.alive()) {
+                                    deadCount.incrementAndGet();
+                                    proxyMetricsService.incrementCheckFailure();
+                                } else if (result.verificationStatus() == ProxyVerificationStatus.VERIFIED) {
+                                    verifiedCount.incrementAndGet();
+                                    proxyMetricsService.incrementCheckSuccess();
+                                } else {
+                                    quickOkCount.incrementAndGet();
+                                    proxyMetricsService.incrementCheckSuccess();
+                                }
+                            }))
+                    .toList();
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        }
 
         ProxyBatchCheckSummary summary = new ProxyBatchCheckSummary(
                 proxies.size(),
@@ -150,59 +196,18 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
         return summary;
     }
 
-    private ProxyCheckExecution checkProxy(ProxyEntity proxy, AtomicInteger deepProbesStarted) {
-        List<ProxyCheckHistoryRecord> historyRecords = new ArrayList<>();
-
-        ProxyCheckResult quickResult = proxyConnectivityChecker.check(proxy);
-        historyRecords.add(historyRecord(LocalDateTime.now(), ProxyCheckType.QUICK, quickResult));
-
-        if (!quickResult.alive()) {
-            return new ProxyCheckExecution(quickResult, historyRecords);
-        }
-
-        if (deepProbesStarted.getAndIncrement() >= checkerProperties.getDeepProbeLimit()) {
-            return new ProxyCheckExecution(quickResult, historyRecords);
-        }
-
-        MtProtoDeepProbeResult deepResult = mtProtoDeepProbeService.probe(proxy);
-        if (!deepResult.success()) {
-            proxyMetricsService.incrementDeepProbeFailure(deepResult.failureCode());
+    private ProxyCheckExecution checkProxy(ProxyEntity proxy, AtomicInteger deepProbesStarted, int deepProbeLimit) {
+        boolean allowDeepProbe = deepProbesStarted.getAndIncrement() < deepProbeLimit;
+        ProxyCheckExecution execution = proxyCheckExecutionService.execute(proxy, allowDeepProbe);
+        if (allowDeepProbe && execution.finalResult().failureCode() != null) {
             log.debug(
                     "Deep probe did not verify proxyId={}: code={}, reason={}",
                     proxy.getId(),
-                    deepResult.failureCode(),
-                    deepResult.reason()
+                    execution.finalResult().failureCode(),
+                    execution.finalResult().errorMessage()
             );
-            ProxyCheckResult quickOkResult = new ProxyCheckResult(
-                    true,
-                    quickResult.latencyMs(),
-                    ProxyVerificationStatus.QUICK_OK,
-                    deepResult.failureCode(),
-                    deepResult.reason()
-            );
-            historyRecords.add(historyRecord(
-                    LocalDateTime.now(),
-                    ProxyCheckType.DEEP,
-                    false,
-                    ProxyVerificationStatus.UNVERIFIED,
-                    null,
-                    deepResult.failureCode(),
-                    deepResult.reason()
-            ));
-            return new ProxyCheckExecution(quickOkResult, historyRecords);
         }
-
-        proxyMetricsService.incrementDeepProbeSuccess();
-        long latencyMs = deepResult.latencyMs() >= 0 ? deepResult.latencyMs() : quickResult.latencyMs();
-        ProxyCheckResult verifiedResult = new ProxyCheckResult(
-                true,
-                latencyMs,
-                ProxyVerificationStatus.VERIFIED,
-                null,
-                null
-        );
-        historyRecords.add(historyRecord(LocalDateTime.now(), ProxyCheckType.DEEP, verifiedResult));
-        return new ProxyCheckExecution(verifiedResult, historyRecords);
+        return execution;
     }
 
     private ProxyCheckExecution failedExecution(ProxyEntity proxy, Throwable error) {
@@ -219,39 +224,32 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
         );
         return new ProxyCheckExecution(
                 result,
-                List.of(historyRecord(LocalDateTime.now(), ProxyCheckType.QUICK, result))
+                List.of(new ProxyCheckHistoryRecord(
+                        LocalDateTime.now(),
+                        ProxyCheckType.QUICK,
+                        result.alive(),
+                        result.verificationStatus(),
+                        null,
+                        result.failureCode(),
+                        result.errorMessage()
+                ))
         );
     }
 
-    private ProxyCheckHistoryRecord historyRecord(LocalDateTime checkedAt, ProxyCheckType checkType, ProxyCheckResult result) {
-        return historyRecord(
-                checkedAt,
-                checkType,
-                result.alive(),
-                result.verificationStatus(),
-                result.latencyMs() >= 0 ? result.latencyMs() : null,
-                result.failureCode(),
-                result.errorMessage()
-        );
+    private int resolveEffectiveConcurrency() {
+        int configured = checkerExecutorProperties.getEffectiveConcurrency();
+        if (configured > 0) {
+            return Math.max(1, Math.min(configured, checkerExecutorProperties.getMaxPoolSize()));
+        }
+        return Math.max(checkerExecutorProperties.getMaxPoolSize(), 1);
     }
 
-    private ProxyCheckHistoryRecord historyRecord(
-            LocalDateTime checkedAt,
-            ProxyCheckType checkType,
-            boolean alive,
-            ProxyVerificationStatus verificationStatus,
-            Long latencyMs,
-            com.peatroxd.mtprototest.checker.model.MtProtoProbeFailureCode failureCode,
-            String failureReason
-    ) {
-        return new ProxyCheckHistoryRecord(
-                checkedAt,
-                checkType,
-                alive,
-                verificationStatus,
-                latencyMs,
-                failureCode,
-                failureReason
-        );
+    private int resolveSubmissionWindowSize(int effectiveConcurrency) {
+        int configured = checkerExecutorProperties.getSubmissionWindowSize();
+        if (configured > 0) {
+            return Math.max(1, Math.min(configured, effectiveConcurrency));
+        }
+        return effectiveConcurrency;
     }
+
 }

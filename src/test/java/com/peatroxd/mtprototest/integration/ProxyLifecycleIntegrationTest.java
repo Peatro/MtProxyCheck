@@ -6,6 +6,7 @@ import com.peatroxd.mtprototest.checker.model.ProxyCheckHistoryRecord;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckResult;
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
 import com.peatroxd.mtprototest.checker.service.ProxyCheckUpdateService;
+import com.peatroxd.mtprototest.checker.service.ProxyRetentionService;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
 import com.peatroxd.mtprototest.proxy.enums.ProxyFeedbackPlatform;
@@ -16,6 +17,7 @@ import com.peatroxd.mtprototest.proxy.enums.ProxyVerificationStatus;
 import com.peatroxd.mtprototest.proxy.repository.ProxyRepository;
 import com.peatroxd.mtprototest.proxy.service.ProxyFeedbackService;
 import com.peatroxd.mtprototest.proxy.service.ProxyService;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,9 +44,13 @@ class ProxyLifecycleIntegrationTest {
     @Autowired
     private ProxyCheckUpdateService proxyCheckUpdateService;
     @Autowired
+    private ProxyRetentionService proxyRetentionService;
+    @Autowired
     private ProxyService proxyService;
     @Autowired
     private ProxyFeedbackService proxyFeedbackService;
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void shouldPersistCheckHistoryUpdateLifecycleAndExposeStats() {
@@ -102,5 +108,47 @@ class ProxyLifecycleIntegrationTest {
                 PageRequest.of(0, 10)
         );
         assertThat(lifecycleBatch).extracting(ProxyEntity::getId).contains(updated.getId());
+    }
+
+    @Test
+    void shouldArchiveOnlyStaleDeadProxies() {
+        ProxyEntity staleDead = proxyRepository.save(ProxyEntity.builder()
+                .host("2.2.2.2")
+                .port(443)
+                .secret("00112233445566778899aabbccddeeff")
+                .type(ProxyType.MTPROTO)
+                .source("integration")
+                .status(ProxyStatus.DEAD)
+                .verificationStatus(ProxyVerificationStatus.UNVERIFIED)
+                .score(0)
+                .consecutiveFailures(9)
+                .consecutiveSuccesses(0)
+                .createdAt(LocalDateTime.now().minusDays(20))
+                .lastCheckedAt(LocalDateTime.now().minusHours(1))
+                .lastSuccessAt(LocalDateTime.now().minusDays(10))
+                .build());
+
+        ProxyEntity recentDead = proxyRepository.save(ProxyEntity.builder()
+                .host("3.3.3.3")
+                .port(443)
+                .secret("00112233445566778899aabbccddeefe")
+                .type(ProxyType.MTPROTO)
+                .source("integration")
+                .status(ProxyStatus.DEAD)
+                .verificationStatus(ProxyVerificationStatus.UNVERIFIED)
+                .score(0)
+                .consecutiveFailures(9)
+                .consecutiveSuccesses(0)
+                .createdAt(LocalDateTime.now().minusDays(2))
+                .lastCheckedAt(LocalDateTime.now().minusHours(1))
+                .lastSuccessAt(LocalDateTime.now().minusDays(2))
+                .build());
+
+        int archived = proxyRetentionService.archiveStaleDeadProxies();
+        entityManager.clear();
+
+        assertThat(archived).isEqualTo(1);
+        assertThat(proxyRepository.findById(staleDead.getId()).orElseThrow().getStatus()).isEqualTo(ProxyStatus.ARCHIVED);
+        assertThat(proxyRepository.findById(recentDead.getId()).orElseThrow().getStatus()).isEqualTo(ProxyStatus.DEAD);
     }
 }

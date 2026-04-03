@@ -16,5 +16,7 @@ public class CheckerProperties {
     private long aliveQuickOkRecheckAfterMs = 300_000;
     private long aliveVerifiedRecheckAfterMs = 1_800_000;
     private long deadRetryAfterMs = 21_600_000;
+    private long archiveDeadAfterMs = 604_800_000;
+    private int archiveMinConsecutiveFailures = 8;
 
 }

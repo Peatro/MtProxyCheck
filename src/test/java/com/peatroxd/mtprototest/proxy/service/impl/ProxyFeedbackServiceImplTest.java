@@ -1,6 +1,7 @@
 package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
+import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +40,8 @@ class ProxyFeedbackServiceImplTest {
     private ProxyCheckHistoryRepository proxyCheckHistoryRepository;
     @Mock
     private ProxyScoringService proxyScoringService;
+    @Mock
+    private PublicCatalogCacheService publicCatalogCacheService;
 
     @Test
     void shouldRejectDuplicateFeedbackInSameWindow() {
@@ -47,10 +51,12 @@ class ProxyFeedbackServiceImplTest {
                 proxyFeedbackRepository,
                 proxyCheckHistoryRepository,
                 proxyScoringService,
-                properties
+                properties,
+                publicCatalogCacheService
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(0L);
         when(proxyFeedbackRepository.existsByProxyIdAndPlatformAndClientKeyAndWindowStartedAt(
                 any(),
                 any(),
@@ -68,6 +74,59 @@ class ProxyFeedbackServiceImplTest {
     }
 
     @Test
+    void shouldRejectWhenClientExceedsWindowSubmissionLimit() {
+        FeedbackProperties properties = new FeedbackProperties();
+        properties.setMaxSubmissionsPerWindow(2);
+        ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
+                proxyRepository,
+                proxyFeedbackRepository,
+                proxyCheckHistoryRepository,
+                proxyScoringService,
+                properties,
+                publicCatalogCacheService
+        );
+
+        when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(2L);
+
+        assertThatThrownBy(() -> service.submitFeedback(
+                1L,
+                new ProxyFeedbackRequest(ProxyFeedbackResult.WORKED, ProxyFeedbackPlatform.DESKTOP),
+                "fingerprint"
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429 TOO_MANY_REQUESTS")
+                .hasMessageContaining("Feedback submission limit exceeded");
+
+        verify(proxyFeedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldUseStricterSubmissionLimitForAnonymousFeedback() {
+        FeedbackProperties properties = new FeedbackProperties();
+        properties.setAnonymousMaxSubmissionsPerWindow(1);
+        ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
+                proxyRepository,
+                proxyFeedbackRepository,
+                proxyCheckHistoryRepository,
+                proxyScoringService,
+                properties,
+                publicCatalogCacheService
+        );
+
+        when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.submitFeedback(
+                1L,
+                new ProxyFeedbackRequest(ProxyFeedbackResult.WORKED, ProxyFeedbackPlatform.DESKTOP),
+                null
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429 TOO_MANY_REQUESTS");
+    }
+
+    @Test
     void shouldPersistFeedbackAndRecalculateScore() {
         FeedbackProperties properties = new FeedbackProperties();
         ProxyFeedbackServiceImpl service = new ProxyFeedbackServiceImpl(
@@ -75,11 +134,13 @@ class ProxyFeedbackServiceImplTest {
                 proxyFeedbackRepository,
                 proxyCheckHistoryRepository,
                 proxyScoringService,
-                properties
+                properties,
+                publicCatalogCacheService
         );
         ProxyEntity proxy = proxy();
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy));
+        when(proxyFeedbackRepository.countByClientKeyAndCreatedAtAfter(any(), any())).thenReturn(0L);
         when(proxyFeedbackRepository.existsByProxyIdAndPlatformAndClientKeyAndWindowStartedAt(
                 any(),
                 any(),
@@ -98,6 +159,8 @@ class ProxyFeedbackServiceImplTest {
 
         verify(proxyFeedbackRepository).save(any());
         verify(proxyRepository).save(ArgumentMatchers.argThat(saved -> saved.getScore() == 77));
+        verify(publicCatalogCacheService).evictProxyById(1L);
+        verify(publicCatalogCacheService).evictPublicCatalogViews();
     }
 
     private ProxyEntity proxy() {

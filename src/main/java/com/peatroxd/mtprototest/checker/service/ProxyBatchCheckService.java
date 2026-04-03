@@ -5,6 +5,8 @@ import com.peatroxd.mtprototest.checker.model.ProxyBatchCheckSummary;
 public interface ProxyBatchCheckService {
     ProxyBatchCheckSummary checkAllProxies();
 
+    ProxyBatchCheckSummary checkStartupProxies(int batchSize, int deepProbeLimit);
+
     ProxyBatchCheckSummary checkNewProxies();
 
     ProxyBatchCheckSummary checkAliveQuickOkProxies();

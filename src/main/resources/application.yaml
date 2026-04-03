@@ -20,9 +20,18 @@ management:
     web:
       exposure:
         include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /docs
+  api-docs:
+    path: /v3/api-docs
+
 app:
   startup:
     bootstrap-enabled: true
+    check-batch-size: 120
+    deep-probe-limit: 10
 
   parser:
     initial-delay-ms: 43200000
@@ -40,13 +49,44 @@ app:
       core-pool-size: 16
       max-pool-size: 32
       queue-capacity: 200
+      effective-concurrency: 24
+      submission-window-size: 24
       await-termination-seconds: 30
       thread-name-prefix: proxy-checker-
 
   feedback:
     dedupe-window-minutes: 60
     recent-limit: 20
+    max-submissions-per-window: 10
+    anonymous-max-submissions-per-window: 3
+
+  admin:
+    enabled: false
+    header-name: X-Admin-Key
+    key:
+
+  rate-limit:
+    enabled: true
+    public-read-limit: 120
+    public-read-window-ms: 60000
+    feedback-write-limit: 20
+    feedback-write-window-ms: 60000
 
   sources:
-    solispirit:
-      url: https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt
+    entries:
+      - name: solispirit
+        url: https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt
+        format: TELEGRAM_TEXT
+        enabled: true
+      - name: free_proxy_db_text
+        url: https://raw.githubusercontent.com/LoneKingCode/free-proxy-db/main/proxies/mtproto.txt
+        format: TELEGRAM_TEXT
+        enabled: true
+      - name: free_proxy_db_json
+        url: https://raw.githubusercontent.com/LoneKingCode/free-proxy-db/main/proxies/mtproto.json
+        format: JSON_CONNECT_STRING
+        enabled: true
+      - name: mtpro_xyz_pointer
+        url: https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json
+        format: URL_POINTER_TELEGRAM_TEXT
+        enabled: true

@@ -1,211 +1,236 @@
 # Mtprototest
 
-Backend service for validating, scoring, and ranking MTProxy servers for Telegram access.
+Backend and web application for collecting, validating, ranking, and distributing public Telegram MTProto proxies.
 
-The service continuously checks proxy availability, stores validation results, calculates reliability scores, and returns the most stable proxies via REST API.
+Current product direction: `B2C website`.
 
----
+The system imports proxies from external sources, checks their availability, performs deeper MTProto validation, stores historical results, calculates a reliability score, and exposes the best candidates through a public website and REST API.
 
-## 🚀 Purpose
+## Product Status
 
-Public MTProxy servers are often unreliable:
-- some stop working quickly
-- some have high latency
-- some accept connections but fail Telegram protocol
+The project is already beyond a raw prototype.
 
-This project solves that by:
+Implemented today:
 
-- validating proxies using real checks
-- collecting historical results
-- calculating reliability scores
-- returning the best available proxies instead of random ones
+- proxy import from external sources
+- normalization and deduplication on import
+- scheduled proxy lifecycle checks
+- quick connectivity checks
+- deep MTProto probe for stronger verification
+- scoring based on recent checks and feedback
+- feedback collection from users
+- public proxy API
+- simple web UI for desktop and mobile usage
+- Liquibase-based schema management
+- automated tests for core flows
 
----
+Current focus:
 
-## ⚙️ Tech Stack
+- finish the first working public web version
+- improve data quality with multiple sources
+- harden the API for real users
+- improve the B2C website UX
+- add minimal admin controls and production observability
 
-- Java 17+
-- Spring Boot
-- Spring Data JPA
-- PostgreSQL
-- Docker / Docker Compose
-- Gradle
+Detailed execution plan lives in [BACKLOG.md](./BACKLOG.md).
 
-*(add Kafka here if you реально используешь его)*
+## Problem
 
----
+Public MTProto proxies are unreliable:
 
-## 🧩 Features
+- many die quickly
+- some respond on TCP but do not work correctly with Telegram
+- some degrade after a short period
+- source quality is inconsistent
 
-- Proxy availability validation
-- Proxy scoring and ranking
-- Historical validation tracking
-- REST API for retrieving top proxies
-- Flexible filtering and sorting
-- Foundation for feedback-based scoring
+This project turns unstable raw proxy feeds into a ranked catalog of better candidates.
 
----
+## What the System Does
 
-## 🏗 Architecture
+High-level flow:
 
-The application follows a layered backend architecture:
+1. Fetch raw proxy links from configured external sources.
+2. Normalize and deduplicate entries.
+3. Store new proxies in PostgreSQL.
+4. Run lifecycle checks on new, alive, and dead proxies.
+5. Use quick connectivity checks and deeper MTProto probes.
+6. Persist check history and update proxy status.
+7. Recalculate score using status, latency, freshness, and feedback.
+8. Expose best proxies through REST API and website.
 
-- **Controller layer** — exposes REST endpoints
-- **Service layer** — contains validation, scoring, and ranking logic
-- **Repository layer** — handles persistence
-- **Database layer** — stores proxies and validation history
+## Architecture
 
 Main domains:
 
-- proxy management
-- validation pipeline
-- scoring system
-- API layer
+- `parser`: ingestion from external proxy sources
+- `checker`: connectivity checks and MTProto verification
+- `proxy`: public API, listing, stats, feedback
+- `scoring`: reliability score calculation
+- `common.metrics`: operational metrics
+- `bootstrap`: startup import and initial checking
 
----
+Layering:
 
-## 🔍 Validation Logic
+- controllers expose HTTP endpoints
+- services hold business logic
+- repositories handle persistence
+- Liquibase manages database schema
+- static frontend consumes public API
 
-Each proxy is validated using real connection checks.
+## Current Tech Stack
 
-Validation includes:
+- Java 21
+- Spring Boot
+- Spring Web MVC
+- Spring Data JPA
+- Liquibase
+- PostgreSQL
+- Micrometer / Actuator
+- Gradle
+- Docker Compose
+- JUnit / Mockito / Spring Boot Test
 
-- connection success / failure
-- response time (latency)
-- stability over multiple checks
+## Current Public API
 
-Timeouts and failures are handled explicitly to avoid blocking the validation pipeline.
+### Proxy endpoints
 
----
+- `GET /api/proxies`
+  Paginated proxy list with filters and sorting.
 
-## 📊 Scoring
+- `GET /api/proxies/best`
+  Best currently available proxies for public consumption.
 
-Each proxy receives a score that reflects its reliability.
+- `GET /api/proxies/{proxyId}`
+  Single proxy details.
 
-The score is based on:
+- `GET /api/proxies/stats`
+  Aggregate stats and recent check summary.
 
-- successful validation checks
-- failed validation checks
+- `POST /api/proxies/{proxyId}/feedback`
+  Submit user feedback for a proxy.
+
+### Operations endpoints
+
+- `POST /api/import/proxies`
+  Trigger proxy import manually.
+
+- `POST /api/check/proxies`
+  Trigger lifecycle checks manually.
+
+## Verification Model
+
+The system distinguishes between:
+
+- `VERIFIED`: passed deeper MTProto verification
+- `QUICK_OK`: reachable by quick check, but not fully verified
+- `UNVERIFIED`: no reliable confirmation yet
+
+This matters because a TCP-successful proxy is not automatically a working MTProto proxy.
+
+## Scoring Model
+
+The current score uses:
+
+- verification confidence
+- recent success rate
 - latency
-- recent activity
+- freshness of recent success
+- failure streak
+- recent user feedback
 
-This allows the system to return not just working proxies, but the most stable ones.
+Score is intended to rank better candidates, not to guarantee that a proxy will work for every user in every network environment.
 
----
+## Running the Project
 
-## ❗ Why not simple TCP check?
+### Prerequisites
 
-Simple TCP checks are not enough because:
+- Java 21
+- PostgreSQL
+- Docker Desktop if using Docker Compose
 
-- proxy may accept connection but fail Telegram protocol
-- latency alone does not guarantee stability
-- proxies degrade over time
+### Database
 
-This service uses repeated validation and scoring to provide more accurate results.
+Default local configuration:
 
----
+- database: `mtproto_db`
+- user: `postgres`
+- password: `postgres`
 
-## ⚠️ Edge Cases
+Configured in [`application.yaml`](./src/main/resources/application.yaml).
 
-The system accounts for:
-
-- unstable proxies (intermittent failures)
-- high latency connections
-- temporary network issues
-- blocked or throttled proxies
-
----
-
-## 🔌 Example API
-
-### Get top proxies
-
-`GET /api/proxies/top`
-
-Example response:
-
-```json
-[
-  {
-    "id": 1,
-    "host": "192.168.1.10",
-    "port": 443,
-    "secret": "abcdef123",
-    "score": 87,
-    "status": "WORKING"
-  },
-  {
-    "id": 2,
-    "host": "192.168.1.11",
-    "port": 443,
-    "secret": "xyz987654",
-    "score": 79,
-    "status": "WORKING"
-  }
-]
-````
-
----
-
-## 🔁 Simplified Flow
-
-```mermaid
-flowchart TD
-    A["Proxy Source"] --> B["Validation Service"]
-    B --> C["Score Calculation"]
-    C --> D["PostgreSQL"]
-    D --> E["REST API"]
-    E --> F["Client"]
-```
-
----
-
-## ▶️ Running the Project
-
-### Using Docker
-
-```bash
-docker-compose up --build
-```
-
-### Local run
+### Local Run
 
 ```bash
 ./gradlew bootRun
 ```
 
-Make sure PostgreSQL is configured properly before запуском.
+On Windows:
 
----
+```powershell
+.\gradlew.bat bootRun
+```
 
-## 🧪 Testing
+### Tests
 
-* JUnit
-* Mockito
-* (add Testcontainers if using)
+```bash
+./gradlew test
+```
 
----
+## Docker
 
-## 📈 Future Improvements
+The repository includes `docker-compose.yml` for local environment setup.
 
-* improve scoring algorithm
-* add caching layer
-* add rate limiting
-* add monitoring (metrics, logs)
-* extend validation strategies
-* add integration tests
+Start locally:
 
----
+```bash
+docker-compose up --build
+```
 
-## 🧠 Key Decisions
+## Scheduling
 
-* Scoring instead of binary status (WORKING / NOT WORKING)
-* Historical data over single check
-* Backend-first architecture (focus on reliability and logic)
-* Extensible validation approach
+The application runs background jobs for:
 
----
+- proxy import
+- lifecycle checking of new proxies
+- recheck of alive proxies
+- retry of dead proxies
 
-## 📌 Summary
+On startup, the application can also bootstrap import and initial checking.
 
-This project focuses on building a reliable backend service that works with unstable external systems (proxies) and transforms raw checks into meaningful, ranked data.
+Relevant settings are configured under `app.*` in [`application.yaml`](./src/main/resources/application.yaml).
+
+## Current Limitations
+
+These are known gaps before `v1` launch:
+
+- only one external source is configured right now
+- public API still needs hardening and rate limiting
+- website UX is still closer to a functional demo than a finished product
+- admin surface is minimal
+- retention policy for large historical datasets is not finalized
+- deployment/monitoring flow still needs production shaping
+
+## Product Roadmap
+
+Near-term priorities:
+
+- add multi-source ingestion
+- improve source quality visibility
+- harden public API and feedback abuse protection
+- turn the web UI into a polished B2C website
+- add admin controls for moderation and manual recheck
+- complete observability and launch preparation
+
+Full task plan and moderation points are maintained in [BACKLOG.md](./BACKLOG.md).
+
+## Repository Pointers
+
+- [`BACKLOG.md`](./BACKLOG.md): product backlog and release plan
+- [`build.gradle.kts`](./build.gradle.kts): project dependencies and build setup
+- [`src/main/resources/application.yaml`](./src/main/resources/application.yaml): runtime configuration
+- [`src/main/resources/static/index.html`](./src/main/resources/static/index.html): current website
+- [`src/main/resources/db/changelog`](./src/main/resources/db/changelog): database migrations
+
+## Next Product Milestone
+
+Target: first working B2C web release by `2026-05-01`.

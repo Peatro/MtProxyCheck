@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-proxy-moderation-status
+      author: codex
+      changes:
+        - addColumn:
+            tableName: proxies
+            columns:
+              - column:
+                  name: moderation_status
+                  type: VARCHAR(32)
+                  defaultValue: NORMAL
+                  constraints:
+                    nullable: false

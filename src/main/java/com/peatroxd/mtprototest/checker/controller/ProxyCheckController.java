@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/check")
+@RequestMapping({"/api/check", "/api/v1/check"})
 @RequiredArgsConstructor
 public class ProxyCheckController {
 

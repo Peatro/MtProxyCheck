@@ -19,6 +19,9 @@ public class ProxyMetricsConfiguration {
         Gauge.builder("proxy.state.count", proxyRepository, repository -> repository.countByStatus(ProxyStatus.DEAD))
                 .tag("status", "DEAD")
                 .register(meterRegistry);
+        Gauge.builder("proxy.state.count", proxyRepository, repository -> repository.countByStatus(ProxyStatus.ARCHIVED))
+                .tag("status", "ARCHIVED")
+                .register(meterRegistry);
         Gauge.builder("proxy.state.count", proxyRepository, repository -> repository.countByStatus(ProxyStatus.NEW))
                 .tag("status", "NEW")
                 .register(meterRegistry);

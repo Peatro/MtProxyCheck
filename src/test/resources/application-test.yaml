@@ -14,6 +14,8 @@ spring:
 app:
   startup:
     bootstrap-enabled: false
+    check-batch-size: 20
+    deep-probe-limit: 3
   parser:
     initial-delay-ms: 3600000
     fixed-delay-ms: 3600000
@@ -22,6 +24,30 @@ app:
     fixed-delay-ms: 3600000
     deep-probe-limit: 5
     batch-size: 50
+    executor:
+      core-pool-size: 2
+      max-pool-size: 4
+      queue-capacity: 8
+      effective-concurrency: 2
+      submission-window-size: 2
+  feedback:
+    dedupe-window-minutes: 60
+    recent-limit: 20
+    max-submissions-per-window: 4
+    anonymous-max-submissions-per-window: 2
+  admin:
+    enabled: true
+    header-name: X-Admin-Key
+    key: test-admin-key
+  rate-limit:
+    enabled: true
+    public-read-limit: 2
+    public-read-window-ms: 60000
+    feedback-write-limit: 1
+    feedback-write-window-ms: 60000
   sources:
-    solispirit:
-      url: https://example.invalid/proxies.txt
+    entries:
+      - name: test_source
+        url: https://example.invalid/proxies.txt
+        format: TELEGRAM_TEXT
+        enabled: false

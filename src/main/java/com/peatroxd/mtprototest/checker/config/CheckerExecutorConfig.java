@@ -1,5 +1,6 @@
 package com.peatroxd.mtprototest.checker.config;
 
+import com.peatroxd.mtprototest.bootstrap.StartupProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,7 +9,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 
 @Configuration
-@EnableConfigurationProperties({CheckerExecutorProperties.class, CheckerProperties.class})
+@EnableConfigurationProperties({CheckerExecutorProperties.class, CheckerProperties.class, StartupProperties.class})
 public class CheckerExecutorConfig {
 
     @Bean

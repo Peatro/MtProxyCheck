@@ -11,5 +11,7 @@ public class FeedbackProperties {
 
     private long dedupeWindowMinutes = 60;
     private int recentLimit = 20;
+    private int maxSubmissionsPerWindow = 10;
+    private int anonymousMaxSubmissionsPerWindow = 3;
 
 }

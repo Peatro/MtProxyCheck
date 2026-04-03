@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changes/006-add-proxy-lifecycle-and-check-history.yaml
   - include:
       file: db/changelog/changes/007-add-feedback-dedupe-fields.yaml
+  - include:
+      file: db/changelog/changes/008-add-proxy-moderation-status.yaml
