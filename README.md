@@ -172,6 +172,9 @@ Before running outside local development, review these settings in [`application
 - `app.rate-limit.*`: public API and feedback limits
 - `app.feedback.*`: abuse protection thresholds
 
+Production overrides live in [`application-prod.yaml`](./src/main/resources/application-prod.yaml).
+An example env file lives in [`.env.example`](./.env.example).
+
 ### Local Run
 
 ```bash
@@ -182,6 +185,12 @@ On Windows:
 
 ```powershell
 .\gradlew.bat bootRun
+```
+
+Production-style profile run:
+
+```powershell
+.\gradlew.bat bootRun "--args=--spring.profiles.active=prod"
 ```
 
 ### Local Smoke Run Without Startup Bootstrap
@@ -218,6 +227,12 @@ Start locally:
 ```bash
 docker-compose up --build
 ```
+
+The compose file is intended for local PostgreSQL only and now supports:
+
+- env-driven database credentials and port mapping
+- persistent named volume
+- PostgreSQL healthcheck
 
 ## Scheduling
 
@@ -275,6 +290,7 @@ Minimum deployment assumptions for `v1`:
 - one PostgreSQL instance with persistent storage
 - one app instance is enough for first launch
 - admin key must not stay empty outside local development
+- production should run with profile `prod`
 - `app.startup.bootstrap-enabled` can stay on for small catalogs, but bounded startup settings should remain conservative
 - monitor `/actuator/health` and `/actuator/prometheus` from day one
 

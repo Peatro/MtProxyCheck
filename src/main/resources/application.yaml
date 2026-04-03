@@ -3,9 +3,9 @@ spring:
     name: Mtprototest
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/mtproto_db
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mtproto_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -19,61 +19,63 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: ${MANAGEMENT_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:always}
 
 springdoc:
   swagger-ui:
     path: /docs
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
   api-docs:
     path: /v3/api-docs
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
 
 app:
   startup:
-    bootstrap-enabled: true
-    check-batch-size: 120
-    deep-probe-limit: 10
+    bootstrap-enabled: ${APP_STARTUP_BOOTSTRAP_ENABLED:true}
+    check-batch-size: ${APP_STARTUP_CHECK_BATCH_SIZE:120}
+    deep-probe-limit: ${APP_STARTUP_DEEP_PROBE_LIMIT:10}
 
   parser:
-    initial-delay-ms: 43200000
-    fixed-delay-ms: 43200000
+    initial-delay-ms: ${APP_PARSER_INITIAL_DELAY_MS:43200000}
+    fixed-delay-ms: ${APP_PARSER_FIXED_DELAY_MS:43200000}
 
   checker:
-    initial-delay-ms: 300000
-    fixed-delay-ms: 300000
-    batch-size: 200
-    deep-probe-limit: 20
-    alive-quick-ok-recheck-after-ms: 300000
-    alive-verified-recheck-after-ms: 1800000
-    dead-retry-after-ms: 21600000
+    initial-delay-ms: ${APP_CHECKER_INITIAL_DELAY_MS:300000}
+    fixed-delay-ms: ${APP_CHECKER_FIXED_DELAY_MS:300000}
+    batch-size: ${APP_CHECKER_BATCH_SIZE:200}
+    deep-probe-limit: ${APP_CHECKER_DEEP_PROBE_LIMIT:20}
+    alive-quick-ok-recheck-after-ms: ${APP_CHECKER_ALIVE_QUICK_OK_RECHECK_AFTER_MS:300000}
+    alive-verified-recheck-after-ms: ${APP_CHECKER_ALIVE_VERIFIED_RECHECK_AFTER_MS:1800000}
+    dead-retry-after-ms: ${APP_CHECKER_DEAD_RETRY_AFTER_MS:21600000}
     executor:
-      core-pool-size: 16
-      max-pool-size: 32
-      queue-capacity: 200
-      effective-concurrency: 24
-      submission-window-size: 24
-      await-termination-seconds: 30
-      thread-name-prefix: proxy-checker-
+      core-pool-size: ${APP_CHECKER_EXECUTOR_CORE_POOL_SIZE:16}
+      max-pool-size: ${APP_CHECKER_EXECUTOR_MAX_POOL_SIZE:32}
+      queue-capacity: ${APP_CHECKER_EXECUTOR_QUEUE_CAPACITY:200}
+      effective-concurrency: ${APP_CHECKER_EXECUTOR_EFFECTIVE_CONCURRENCY:24}
+      submission-window-size: ${APP_CHECKER_EXECUTOR_SUBMISSION_WINDOW_SIZE:24}
+      await-termination-seconds: ${APP_CHECKER_EXECUTOR_AWAIT_TERMINATION_SECONDS:30}
+      thread-name-prefix: ${APP_CHECKER_EXECUTOR_THREAD_NAME_PREFIX:proxy-checker-}
 
   feedback:
-    dedupe-window-minutes: 60
-    recent-limit: 20
-    max-submissions-per-window: 10
-    anonymous-max-submissions-per-window: 3
+    dedupe-window-minutes: ${APP_FEEDBACK_DEDUPE_WINDOW_MINUTES:60}
+    recent-limit: ${APP_FEEDBACK_RECENT_LIMIT:20}
+    max-submissions-per-window: ${APP_FEEDBACK_MAX_SUBMISSIONS_PER_WINDOW:10}
+    anonymous-max-submissions-per-window: ${APP_FEEDBACK_ANONYMOUS_MAX_SUBMISSIONS_PER_WINDOW:3}
 
   admin:
-    enabled: false
-    header-name: X-Admin-Key
-    key:
+    enabled: ${APP_ADMIN_ENABLED:false}
+    header-name: ${APP_ADMIN_HEADER_NAME:X-Admin-Key}
+    key: ${APP_ADMIN_KEY:}
 
   rate-limit:
-    enabled: true
-    public-read-limit: 120
-    public-read-window-ms: 60000
-    feedback-write-limit: 20
-    feedback-write-window-ms: 60000
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    public-read-limit: ${APP_RATE_LIMIT_PUBLIC_READ_LIMIT:120}
+    public-read-window-ms: ${APP_RATE_LIMIT_PUBLIC_READ_WINDOW_MS:60000}
+    feedback-write-limit: ${APP_RATE_LIMIT_FEEDBACK_WRITE_LIMIT:20}
+    feedback-write-window-ms: ${APP_RATE_LIMIT_FEEDBACK_WRITE_WINDOW_MS:60000}
 
   sources:
     entries:

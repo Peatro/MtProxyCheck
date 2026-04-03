@@ -1,0 +1,26 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+management:
+  endpoint:
+    health:
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:always}
+
+springdoc:
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+
+app:
+  admin:
+    enabled: ${APP_ADMIN_ENABLED:true}
+  startup:
+    bootstrap-enabled: ${APP_STARTUP_BOOTSTRAP_ENABLED:true}
