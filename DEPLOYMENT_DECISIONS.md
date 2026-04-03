@@ -151,9 +151,9 @@ Need confirmation:
 
 - who is responsible for database backups and restore verification
 
-Recommended answer:
+Confirmed answer:
 
-- explicit single owner before launch
+- product owner: `Peatr`
 
 ### 7. Monitoring Owner
 
@@ -161,9 +161,9 @@ Need confirmation:
 
 - who receives alerts
 
-Recommended answer:
+Confirmed answer:
 
-- explicit single owner before launch
+- product owner: `Peatr`
 
 ### 8. Launch Traffic Expectation
 
@@ -185,4 +185,3 @@ Proceed with public `v1` only if all of the following are true:
 - backups are defined
 - monitoring is defined
 - release checklist is reviewed
-

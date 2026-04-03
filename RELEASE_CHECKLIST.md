@@ -28,6 +28,10 @@
 - [ ] monitoring is configured against `/actuator/health` and `/actuator/prometheus`
 - [ ] logs are collected from the application process
 - [ ] database backup approach is defined
+- [x] backup owner is assigned
+  Owner: `Peatr`
+- [x] monitoring owner is assigned
+  Owner: `Peatr`
 
 ## Product Readiness
 
