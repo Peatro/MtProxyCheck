@@ -1,1233 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MTProto Proxy Access</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTProto Access</title>
     <style>
-        :root {
-            --bg: #07111c;
-            --bg-soft: #0d1726;
-            --panel: rgba(13, 23, 38, 0.88);
-            --panel-strong: rgba(10, 18, 30, 0.96);
-            --border: rgba(148, 163, 184, 0.16);
-            --text: #e8f1fb;
-            --muted: #8fa3b8;
-            --accent: #22d3ee;
-            --accent-strong: #06b6d4;
-            --alive: #22c55e;
-            --warn: #f59e0b;
-            --danger: #ef4444;
-            --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
-            --radius-xl: 28px;
-            --radius-lg: 20px;
-            --radius-md: 14px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            margin: 0;
-            min-height: 100%;
-            font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
-            color: var(--text);
-            background:
-                    radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
-                    radial-gradient(circle at 85% 0%, rgba(34, 197, 94, 0.08), transparent 24%),
-                    linear-gradient(180deg, #07111c 0%, #09131f 100%);
-        }
-
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background-image:
-                    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-            background-size: 34px 34px;
-            mask-image: radial-gradient(circle at center, black 35%, transparent 85%);
-        }
-
-        .page {
-            width: min(1160px, calc(100% - 28px));
-            margin: 28px auto;
-            padding: 28px;
-            border: 1px solid var(--border);
-            border-radius: 32px;
-            background: rgba(7, 17, 28, 0.72);
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(16px);
-        }
-
-        .hero {
-            display: grid;
-            grid-template-columns: 1.6fr 0.8fr;
-            gap: 22px;
-            align-items: end;
-            margin-bottom: 22px;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(34, 211, 238, 0.12);
-            border: 1px solid rgba(34, 211, 238, 0.22);
-            color: #a5f3fc;
-            font-size: 12px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        h1 {
-            margin: 14px 0 10px;
-            font-size: clamp(34px, 5vw, 58px);
-            line-height: 0.96;
-            letter-spacing: -0.04em;
-        }
-
-        .subtitle {
-            margin: 0;
-            color: var(--muted);
-            max-width: 760px;
-            line-height: 1.7;
-            font-size: 15px;
-        }
-
-        .hero-stat {
-            padding: 20px 22px;
-            border-radius: 22px;
-            border: 1px solid var(--border);
-            background: var(--panel);
-            min-height: 132px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .hero-stat-label {
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.11em;
-        }
-
-        .hero-stat-value {
-            font-size: 38px;
-            font-weight: 700;
-            letter-spacing: -0.04em;
-        }
-
-        .hero-stat-note {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .status-banner {
-            padding: 16px 18px;
-            margin-bottom: 22px;
-            border-radius: 18px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid var(--border);
-            color: var(--muted);
-            font-size: 15px;
-        }
-
-        .status-banner.error {
-            color: #fecaca;
-            background: rgba(127, 29, 29, 0.18);
-            border-color: rgba(239, 68, 68, 0.25);
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: 1.25fr 0.95fr;
-            gap: 22px;
-        }
-
-        .section {
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--border);
-            background: var(--panel);
-            padding: 22px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .section::after {
-            content: "";
-            position: absolute;
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            right: -70px;
-            bottom: -80px;
-            background: radial-gradient(circle, rgba(34, 211, 238, 0.12), transparent 70%);
-            pointer-events: none;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: end;
-            gap: 16px;
-            margin-bottom: 18px;
-        }
-
-        .section-title {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: -0.03em;
-        }
-
-        .section-note {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.65;
-        }
-
-        .section-tag {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #a5f3fc;
-            padding: 8px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(34, 211, 238, 0.2);
-            background: rgba(34, 211, 238, 0.08);
-            white-space: nowrap;
-        }
-
-        .featured-card {
-            padding: 22px;
-            border-radius: 24px;
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            background:
-                    linear-gradient(180deg, rgba(255,255,255,0.025), transparent 38%),
-                    var(--panel-strong);
-            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
-            transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-        }
-
-        .featured-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(34, 211, 238, 0.24);
-            box-shadow: 0 24px 52px rgba(0, 0, 0, 0.3);
-        }
-
-        .proxy-topline {
-            display: flex;
-            justify-content: space-between;
-            gap: 14px;
-            align-items: start;
-            margin-bottom: 18px;
-        }
-
-        .proxy-main {
-            min-width: 0;
-        }
-
-        .proxy-address {
-            margin: 0 0 8px;
-            font-size: clamp(24px, 3.5vw, 34px);
-            letter-spacing: -0.04em;
-            line-height: 1.05;
-            word-break: break-word;
-        }
-
-        .proxy-caption {
-            margin: 0;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            border: 1px solid rgba(148, 163, 184, 0.14);
-            background: rgba(148, 163, 184, 0.08);
-            color: #d8e3ef;
-        }
-
-        .status-badge.alive {
-            color: #d1fae5;
-            background: rgba(34, 197, 94, 0.14);
-            border-color: rgba(34, 197, 94, 0.24);
-        }
-
-        .badge-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-
-        .verification-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.09em;
-            text-transform: uppercase;
-            border: 1px solid transparent;
-        }
-
-        .verification-badge.verified {
-            color: #cffafe;
-            background: rgba(34, 211, 238, 0.16);
-            border-color: rgba(34, 211, 238, 0.3);
-            box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.06);
-        }
-
-        .verification-badge.quick {
-            color: #fde68a;
-            background: rgba(245, 158, 11, 0.14);
-            border-color: rgba(245, 158, 11, 0.24);
-        }
-
-        .verification-badge.unverified {
-            color: #cbd5e1;
-            background: rgba(148, 163, 184, 0.12);
-            border-color: rgba(148, 163, 184, 0.18);
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .stat {
-            padding: 14px;
-            border-radius: 16px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            background: rgba(255,255,255,0.02);
-        }
-
-        .stat-label {
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .stat-value {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 21px;
-            font-weight: 700;
-        }
-
-        .latency-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            box-shadow: 0 0 12px currentColor;
-            flex: 0 0 auto;
-        }
-
-        .latency-good {
-            color: var(--alive);
-        }
-
-        .latency-medium {
-            color: var(--warn);
-        }
-
-        .latency-poor {
-            color: var(--danger);
-        }
-
-        .actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .btn {
-            appearance: none;
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text);
-            border-radius: 14px;
-            padding: 13px 14px;
-            cursor: pointer;
-            font: inherit;
-            font-size: 14px;
-            font-weight: 600;
-            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
-            text-align: center;
-            text-decoration: none;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(34, 211, 238, 0.26);
-            background: rgba(34, 211, 238, 0.08);
-        }
-
-        .btn.primary {
-            background: linear-gradient(180deg, rgba(34, 211, 238, 0.2), rgba(6, 182, 212, 0.14));
-            border-color: rgba(34, 211, 238, 0.24);
-        }
-
-        .btn.secondary {
-            background: rgba(34, 197, 94, 0.08);
-            border-color: rgba(34, 197, 94, 0.18);
-        }
-
-        .btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn.disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .desktop-helper {
-            margin-top: 14px;
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.65;
-        }
-
-        .legend {
-            display: grid;
-            gap: 10px;
-            margin-top: 16px;
-            padding: 14px;
-            border-radius: 16px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            background: rgba(255,255,255,0.02);
-        }
-
-        .legend-title {
-            color: var(--text);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-        }
-
-        .legend-line {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .list {
-            display: grid;
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .list-title {
-            margin: 0 0 12px;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text);
-            letter-spacing: 0.02em;
-        }
-
-        .proxy-row {
-            display: grid;
-            grid-template-columns: 1.3fr 0.7fr 0.8fr;
-            gap: 12px;
-            align-items: center;
-            padding: 14px 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            background: rgba(255,255,255,0.02);
-            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-        }
-
-        .proxy-row:hover {
-            transform: translateY(-1px);
-            border-color: rgba(34, 211, 238, 0.18);
-            background: rgba(34, 211, 238, 0.04);
-        }
-
-        .proxy-row-main {
-            min-width: 0;
-        }
-
-        .proxy-row-address {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            word-break: break-word;
-        }
-
-        .proxy-row-caption {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .proxy-row-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .proxy-row-metric {
-            text-align: right;
-        }
-
-        .proxy-row-label {
-            color: var(--muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 6px;
-        }
-
-        .proxy-row-value {
-            font-size: 15px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: flex-end;
-        }
-
-        .mobile-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .feedback-actions {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .feedback-note {
-            margin-top: 10px;
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .btn.feedback-positive {
-            background: rgba(34, 197, 94, 0.08);
-            border-color: rgba(34, 197, 94, 0.18);
-        }
-
-        .btn.feedback-negative {
-            background: rgba(239, 68, 68, 0.08);
-            border-color: rgba(239, 68, 68, 0.18);
-        }
-
-        .mobile-note {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        .empty-panel {
-            padding: 24px;
-            border-radius: 18px;
-            border: 1px dashed rgba(148, 163, 184, 0.18);
-            color: var(--muted);
-            text-align: center;
-            font-size: 15px;
-            background: rgba(255,255,255,0.02);
-        }
-
-        .toast {
-            position: fixed;
-            left: 50%;
-            bottom: 22px;
-            transform: translateX(-50%) translateY(20px);
-            padding: 14px 18px;
-            border-radius: 14px;
-            background: rgba(9, 17, 29, 0.94);
-            border: 1px solid rgba(34, 211, 238, 0.18);
-            color: var(--text);
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 180ms ease, transform 180ms ease;
-            z-index: 50;
-            font-size: 14px;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        @media (max-width: 980px) {
-            .hero,
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-stat {
-                min-height: auto;
-            }
-        }
-
-        @media (max-width: 700px) {
-            .page {
-                width: min(100% - 16px, 1160px);
-                margin: 12px auto;
-                padding: 16px;
-                border-radius: 24px;
-            }
-
-            .section {
-                padding: 18px;
-            }
-
-            .stats,
-            .actions,
-            .mobile-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .proxy-row {
-                grid-template-columns: 1fr;
-            }
-
-            .proxy-row-metric {
-                text-align: left;
-            }
-
-            .proxy-row-value {
-                justify-content: flex-start;
-            }
-
-            .proxy-topline,
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
+        :root{--bg:#f5ede2;--bg2:#ead9c7;--card:rgba(255,250,244,.82);--line:rgba(60,40,24,.12);--ink:#221a16;--muted:#65594f;--accent:#c2512d;--accent2:#1d5a51;--good:#2e8b57;--warn:#d3881a;--bad:#b3473d;--shadow:0 18px 50px rgba(76,47,22,.12);--r1:30px;--r2:22px;--r3:16px}
+        *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Manrope","IBM Plex Sans","Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at top left,rgba(194,81,45,.14),transparent 24%),radial-gradient(circle at right top,rgba(29,90,81,.12),transparent 20%),linear-gradient(180deg,var(--bg),var(--bg2))}
+        body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(70,45,25,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(70,45,25,.025) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(circle at center,black 45%,transparent 92%)}
+        .wrap{width:min(1180px,calc(100% - 24px));margin:12px auto;padding:8px}
+        .hero,.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+        .hero{padding:26px;border-radius:36px;overflow:hidden;position:relative}
+        .hero:after{content:"";position:absolute;right:-70px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(194,81,45,.18),transparent 70%)}
+        .eyebrow,.tag,.pill{display:inline-flex;align-items:center;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+        .eyebrow{padding:9px 13px;border:1px solid rgba(194,81,45,.16);background:rgba(194,81,45,.08);color:var(--accent)}
+        .hero-grid{display:grid;grid-template-columns:1.4fr .9fr;gap:18px;align-items:end;position:relative;z-index:1}
+        h1{margin:16px 0 12px;font-size:clamp(38px,6vw,72px);line-height:.94;letter-spacing:-.05em;max-width:760px}
+        .copy,.sub,.micro,.metric-note,.empty,.status,.explain p,.meta-note{color:var(--muted);line-height:1.72}
+        .copy{font-size:16px;max-width:720px}.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.chip{padding:9px 13px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.45);font-size:13px;font-weight:700}
+        .hero-side{display:grid;gap:12px}.hero-box{padding:18px;border:1px solid var(--line);border-radius:24px;background:rgba(255,255,255,.5)}.label{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.big{margin-top:8px;font-size:38px;font-weight:800;letter-spacing:-.05em}
+        .status{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.45);font-size:14px}.status.error{color:#7e251d;background:rgba(179,71,61,.1);border-color:rgba(179,71,61,.26)}
+        .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}.metric{padding:18px;border-radius:20px;transform:translateY(8px);opacity:0;animation:rise .45s ease forwards}.metric:nth-child(2){animation-delay:.06s}.metric:nth-child(3){animation-delay:.12s}.metric:nth-child(4){animation-delay:.18s}.metric,.proxy-card,.queue-item,.explain-item{border:1px solid var(--line);background:rgba(255,255,255,.48);border-radius:20px}
+        .metric-value{margin-top:8px;font-size:28px;font-weight:800;letter-spacing:-.05em}
+        .layout{display:grid;grid-template-columns:1.16fr .84fr;gap:18px;margin-top:18px}.stack{display:grid;gap:18px}.card{padding:22px;border-radius:30px;position:relative;overflow:hidden}.card:after{content:"";position:absolute;right:-50px;bottom:-60px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(29,90,81,.09),transparent 70%)}
+        .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.title{margin:0;font-size:28px;letter-spacing:-.04em}.sub{margin:8px 0 0;font-size:14px}.tag{padding:8px 12px;border:1px solid rgba(29,90,81,.16);background:rgba(29,90,81,.08);color:var(--accent2);white-space:nowrap}
+        .panel{padding:20px;border-radius:24px;border:1px solid rgba(60,40,24,.16);background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,248,240,.76))}
+        .topline{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.addr{margin:0;font-size:clamp(24px,3vw,38px);line-height:1;letter-spacing:-.05em;word-break:break-word}.meta-note{margin:8px 0 0;font-size:13px}
+        .tagrow{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.pill{padding:9px 12px;border:1px solid transparent}.verified{color:var(--accent2);background:rgba(29,90,81,.13);border-color:rgba(29,90,81,.18)}.quick{color:#8b5b12;background:rgba(211,136,26,.14);border-color:rgba(211,136,26,.24)}.unverified{color:#665950;background:rgba(101,89,79,.09);border-color:rgba(101,89,79,.16)}.alive{color:#21532d;background:rgba(46,139,87,.14);border-color:rgba(46,139,87,.24)}.other{color:#665950;background:rgba(101,89,79,.08);border-color:rgba(101,89,79,.16)}
+        .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.fact{padding:13px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.4)}.fact-value,.meta-value{margin-top:7px;font-size:17px;font-weight:800}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}.good{background:var(--good)}.mid{background:var(--warn)}.bad{background:var(--bad)}
+        .actions,.feedback,.pack-actions,.meta-grid{display:grid;gap:12px}.actions,.feedback,.pack-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .btn{appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.55);color:var(--ink);border-radius:16px;padding:14px 16px;font:inherit;font-size:14px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;transition:.16s transform,.16s border-color,.16s box-shadow,.16s opacity}.btn:hover{transform:translateY(-1px);border-color:rgba(194,81,45,.26);box-shadow:0 12px 22px rgba(76,47,22,.09)}.btn.primary{background:linear-gradient(135deg,#c2512d,#d96b48);border-color:rgba(194,81,45,.35);color:#fff7f2}.btn.secondary{background:rgba(29,90,81,.08);border-color:rgba(29,90,81,.18);color:var(--accent2)}.btn.goodbtn{background:rgba(46,139,87,.12);border-color:rgba(46,139,87,.2);color:#21532d}.btn.badbtn{background:rgba(179,71,61,.1);border-color:rgba(179,71,61,.2);color:#7e251d}.btn:disabled,.btn.disabled{opacity:.45;cursor:not-allowed;transform:none;pointer-events:none}
+        .list{display:grid;gap:12px}.proxy-card,.queue-item,.explain-item{padding:16px}.proxy-top,.queue-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.proxy-title,.queue-title,.explain h3{margin:0;font-size:16px;font-weight:800}.proxy-copy,.queue-copy{margin:6px 0 0;font-size:12px;color:var(--muted)}.meta-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}.meta-cell{padding:10px;border-radius:14px;background:rgba(255,255,255,.42);border:1px solid rgba(60,40,24,.08)}.meta-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+        .explain{display:grid;gap:12px}.empty{text-align:center;padding:22px;border:1px dashed rgba(60,40,24,.18);border-radius:18px;background:rgba(255,255,255,.28);font-size:15px}
+        .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);padding:14px 18px;border-radius:14px;border:1px solid rgba(194,81,45,.18);background:rgba(34,26,22,.92);color:#fff7f1;box-shadow:0 18px 40px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:.18s opacity,.18s transform;z-index:30}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @media (max-width:1080px){.hero-grid,.layout{grid-template-columns:1fr}}
+        @media (max-width:820px){.metrics,.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media (max-width:680px){.wrap{width:min(100% - 12px,1180px);margin:6px auto;padding:4px}.hero,.card{padding:18px;border-radius:24px}h1{font-size:clamp(34px,12vw,52px)}.metrics,.facts,.actions,.feedback,.pack-actions,.meta-grid{grid-template-columns:1fr}.head,.topline,.proxy-top,.queue-top{flex-direction:column;align-items:flex-start}}
     </style>
 </head>
 <body>
-<main class="page">
+<main class="wrap">
     <section class="hero">
-        <div>
-            <div class="eyebrow">Telegram MTProto Access</div>
-            <h1>Fast Proxy Switching for Desktop and Mobile</h1>
-            <p class="subtitle">
-                Desktop mode is optimized for one-by-one manual switching when you want to test the current best route.
-                Mobile mode gives you a compact proxy pack for faster copy and import workflows inside Telegram.
-            </p>
+        <div class="eyebrow">MTProto для Telegram</div>
+        <div class="hero-grid">
+            <div>
+                <h1>Рабочие прокси без ручного перебора длинных списков</h1>
+                <p class="copy">Каталог берет лучшие MTProto-маршруты из нескольких источников, проверяет их и отдает готовый сценарий: что открыть сейчас, что держать как запасной вариант и что быстро вставить в телефон.</p>
+                <div class="chips">
+                    <div class="chip">Несколько источников</div>
+                    <div class="chip">Verified выше в выдаче</div>
+                    <div class="chip">Быстрый переход к следующему</div>
+                    <div class="chip">Пакет ссылок для телефона</div>
+                </div>
+            </div>
+            <aside class="hero-side">
+                <div class="hero-box"><div class="label">Маршрутов в подборке</div><div class="big" id="heroCount">0</div><div class="sub">Уже отсортированы по качеству, проверке и скорости.</div></div>
+                <div class="hero-box"><div class="label">Стадия продукта</div><div class="big">Public beta</div><div class="sub">Сервис готов для живого использования на сайте.</div></div>
+            </aside>
         </div>
-        <aside class="hero-stat">
-            <div class="hero-stat-label">Loaded Proxies</div>
-            <div class="hero-stat-value" id="proxyCount">0</div>
-            <div class="hero-stat-note">Fetched once from the backend and kept in memory for smooth local switching.</div>
-        </aside>
+        <div id="status" class="status">Загружаю каталог...</div>
     </section>
 
-    <section id="statusBanner" class="status-banner">Loading proxies...</section>
+    <section class="metrics">
+        <article class="metric"><div class="label">Живые сейчас</div><div id="aliveCount" class="metric-value">0</div><div class="metric-note">Прокси, которые были доступны на последней проверке.</div></article>
+        <article class="metric"><div class="label">Verified</div><div id="verifiedCount" class="metric-value">0</div><div class="metric-note">Подтверждены deep MTProto-проверкой.</div></article>
+        <article class="metric"><div class="label">Проверок за 24ч</div><div id="checksCount" class="metric-value">0</div><div class="metric-note">Показывает, что каталог не статичен и реально обновляется.</div></article>
+        <article class="metric"><div class="label">Deep success</div><div id="deepRate" class="metric-value">0%</div><div class="metric-note">Доля успешных deep-check за сутки.</div></article>
+    </section>
 
     <section class="layout">
-        <section class="section">
-            <div class="section-header">
-                <div>
-                    <h2 class="section-title">Desktop Mode</h2>
-                    <p class="section-note">Best for manual testing and switching one proxy at a time without another backend request.</p>
+        <div class="stack">
+            <section class="card">
+                <div class="head"><div><h2 class="title">Быстрый старт</h2><p class="sub">Сначала пробуй верхний вариант. Если не зашел именно у тебя, переходи к следующему без лишнего поиска.</p></div><div id="desktopPos" class="tag">Маршрут 0 / 0</div></div>
+                <div id="desktopPanel" class="empty">Подбираю лучший маршрут...</div>
+            </section>
+            <section class="card">
+                <div class="head"><div><h2 class="title">Как читать статусы</h2><p class="sub">Интерфейс не обещает невозможного. Он просто помогает быстро понять, насколько можно доверять маршруту прямо сейчас.</p></div><div class="tag">Trust layer</div></div>
+                <div class="explain">
+                    <article class="explain-item"><h3>Verified</h3><p>Прошел глубокую MTProto-проверку. Это лучший первый кандидат для запуска Telegram.</p></article>
+                    <article class="explain-item"><h3>TCP only</h3><p>Маршрут отвечает, но полная MTProto-валидация не подтверждена. Используй как запасной путь.</p></article>
+                    <article class="explain-item"><h3>Score и задержка</h3><p>Score строится на истории проверок и фидбеке. Задержка показывает, насколько маршрут быстрый в последнем замере.</p></article>
                 </div>
-                <div class="section-tag" id="desktopPosition">Proxy 0 / 0</div>
-            </div>
-
-            <div id="desktopContent">
-                <div class="empty-panel">Loading featured proxy...</div>
-            </div>
-        </section>
-
-        <section class="section">
-            <div class="section-header">
-                <div>
-                    <h2 class="section-title">Mobile Mode</h2>
-                    <p class="section-note">Designed for mobile Telegram usage where copying a small proxy pack is often faster.</p>
-                </div>
-                <div class="section-tag" id="mobilePackSize">Pack: 0</div>
-            </div>
-
-            <div id="mobileContent">
-                <div class="empty-panel">Preparing proxy pack preview...</div>
-            </div>
-        </section>
+            </section>
+        </div>
+        <div class="stack">
+            <section class="card">
+                <div class="head"><div><h2 class="title">Пакет для телефона</h2><p class="sub">Если удобнее сразу вставить несколько вариантов в мобильный Telegram, используй готовый набор ссылок.</p></div><div id="mobileSize" class="tag">Пакет 0</div></div>
+                <div id="mobilePanel" class="empty">Собираю мобильный пакет...</div>
+            </section>
+            <section class="card">
+                <div class="head"><div><h2 class="title">Запасные маршруты</h2><p class="sub">Короткий список кандидатов на случай, если первый вариант нестабилен именно на твоей сети.</p></div><div class="tag">Top list</div></div>
+                <div id="queuePanel" class="empty">Готовлю запасной список...</div>
+            </section>
+        </div>
     </section>
 </main>
-
 <div id="toast" class="toast"></div>
-
 <script>
-    const API_URL = "/api/proxies/best";
-    const MOBILE_PREVIEW_LIMIT = 8;
-
-    const state = {
-        proxies: [],
-        currentIndex: 0,
-        submittedFeedbackKeys: new Set()
-    };
-
-    const proxyCountNode = document.getElementById("proxyCount");
-    const statusBannerNode = document.getElementById("statusBanner");
-    const desktopContentNode = document.getElementById("desktopContent");
-    const mobileContentNode = document.getElementById("mobileContent");
-    const desktopPositionNode = document.getElementById("desktopPosition");
-    const mobilePackSizeNode = document.getElementById("mobilePackSize");
-    const toastNode = document.getElementById("toast");
-
-    let toastTimer = null;
-
-    function createEmptyPanel(message) {
-        return `<div class="empty-panel">${escapeHtml(message)}</div>`;
-    }
-
-    function escapeHtml(value) {
-        return String(value ?? "")
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#39;");
-    }
-
-    function latencyTone(latency) {
-        if (latency == null || latency < 0) {
-            return "latency-medium";
-        }
-        if (latency < 100) {
-            return "latency-good";
-        }
-        if (latency <= 300) {
-            return "latency-medium";
-        }
-        return "latency-poor";
-    }
-
-    function setStatus(message, isError = false) {
-        statusBannerNode.textContent = message;
-        statusBannerNode.classList.toggle("error", isError);
-    }
-
-    function showToast(message) {
-        toastNode.textContent = message;
-        toastNode.classList.add("show");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => {
-            toastNode.classList.remove("show");
-        }, 1800);
-    }
-
-    function normalizeProxy(rawProxy) {
-        return {
-            id: rawProxy?.id ?? null,
-            host: String(rawProxy?.host ?? ""),
-            port: rawProxy?.port ?? null,
-            status: String(rawProxy?.status ?? "UNKNOWN"),
-            verificationStatus: String(rawProxy?.verificationStatus ?? "UNVERIFIED"),
-            verified: Boolean(rawProxy?.verified),
-            score: rawProxy?.score ?? null,
-            lastLatencyMs: rawProxy?.lastLatencyMs ?? null,
-            telegramDeepLink: rawProxy?.telegramDeepLink ?? "",
-            telegramWebLink: rawProxy?.telegramWebLink ?? ""
-        };
-    }
-
-    function setProxyData(proxies) {
-        state.proxies = proxies.map(normalizeProxy).filter(proxy => proxy.host && proxy.port != null);
-        state.currentIndex = getInitialDesktopIndex(state.proxies);
-    }
-
-    function resetUi(message) {
-        proxyCountNode.textContent = "0";
-        desktopPositionNode.textContent = "Proxy 0 / 0";
-        mobilePackSizeNode.textContent = "Pack: 0";
-        desktopContentNode.innerHTML = createEmptyPanel(message);
-        mobileContentNode.innerHTML = createEmptyPanel(message);
-    }
-
-    async function copyText(text) {
-        if (!text) {
-            throw new Error("Nothing to copy");
-        }
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-            return;
-        }
-
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-
-        const ok = document.execCommand("copy");
-        textarea.remove();
-
-        if (!ok) {
-            throw new Error("Copy failed");
-        }
-    }
-
-    function getCurrentProxy() {
-        return state.proxies[state.currentIndex] || null;
-    }
-
-    function verificationRank(proxy) {
-        switch (proxy.verificationStatus) {
-            case "VERIFIED":
-                return 0;
-            case "QUICK_OK":
-                return 1;
-            default:
-                return 2;
-        }
-    }
-
-    function getInitialDesktopIndex(proxies) {
-        const verifiedIndex = proxies.findIndex(proxy => proxy.verificationStatus === "VERIFIED");
-        return verifiedIndex >= 0 ? verifiedIndex : 0;
-    }
-
-    function getMobilePackProxies() {
-        return [...state.proxies]
-            .sort((left, right) => {
-                const verificationDelta = verificationRank(left) - verificationRank(right);
-                if (verificationDelta !== 0) {
-                    return verificationDelta;
-                }
-
-                const leftScore = left.score ?? -1;
-                const rightScore = right.score ?? -1;
-                if (leftScore !== rightScore) {
-                    return rightScore - leftScore;
-                }
-
-                const leftLatency = left.lastLatencyMs ?? Number.MAX_SAFE_INTEGER;
-                const rightLatency = right.lastLatencyMs ?? Number.MAX_SAFE_INTEGER;
-                if (leftLatency !== rightLatency) {
-                    return leftLatency - rightLatency;
-                }
-
-                return (left.id ?? Number.MAX_SAFE_INTEGER) - (right.id ?? Number.MAX_SAFE_INTEGER);
-            })
-            .slice(0, MOBILE_PREVIEW_LIMIT);
-    }
-
-    function formatLatency(latency) {
-        return latency == null || latency < 0 ? "N/A" : `${latency} ms`;
-    }
-
-    function actionHref(link) {
-        return link || "#";
-    }
-
-    function copyableTelegramLink(proxy) {
-        return proxy.telegramWebLink || proxy.telegramDeepLink || "";
-    }
-
-    function feedbackKey(proxyId, platform) {
-        return `${proxyId}:${platform}`;
-    }
-
-    function hasSubmittedFeedback(proxyId, platform) {
-        return state.submittedFeedbackKeys.has(feedbackKey(proxyId, platform));
-    }
-
-    function markFeedbackSubmitted(proxyId, platform) {
-        state.submittedFeedbackKeys.add(feedbackKey(proxyId, platform));
-    }
-
-    async function sendFeedback(proxyId, result, platform) {
-        const response = await fetch(`/api/proxies/${proxyId}/feedback`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({ result, platform })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Feedback request failed with status ${response.status}`);
-        }
-
-        return response.json();
-    }
-
-    function verificationMeta(proxy) {
-        switch (proxy.verificationStatus) {
-            case "VERIFIED":
-                return {
-                    label: "Verified",
-                    className: "verified",
-                    description: "Confirmed by deep MTProto check"
-                };
-            case "QUICK_OK":
-                return {
-                    label: "TCP only",
-                    className: "quick",
-                    description: "Reachable, but not fully confirmed as MTProto"
-                };
-            default:
-                return {
-                    label: "Unverified",
-                    className: "unverified",
-                    description: "No verification confidence available"
-                };
-        }
-    }
-
-    function verificationBadge(proxy) {
-        const meta = verificationMeta(proxy);
-        return `<span class="verification-badge ${meta.className}">${escapeHtml(meta.label)}</span>`;
-    }
-
-    function buildLinkPack(proxies, key) {
-        return proxies
-            .map(proxy => proxy[key])
-            .filter(Boolean)
-            .join("\n");
-    }
-
-    function renderDesktop() {
-        const total = state.proxies.length;
-        const proxy = getCurrentProxy();
-
-        desktopPositionNode.textContent = `Proxy ${total ? state.currentIndex + 1 : 0} / ${total}`;
-
-        if (!proxy) {
-            desktopContentNode.innerHTML = createEmptyPanel("No proxies available for desktop mode.");
-            return;
-        }
-
-        const badgeClass = proxy.status === "ALIVE" ? "status-badge alive" : "status-badge";
-        const latencyClass = latencyTone(proxy.lastLatencyMs);
-        const hasNext = state.currentIndex < total - 1;
-        const hasDeepLink = Boolean(proxy.telegramDeepLink);
-        const hasWebLink = Boolean(proxy.telegramWebLink);
-        const copyLink = copyableTelegramLink(proxy);
-        const verification = verificationMeta(proxy);
-        const desktopFeedbackLocked = hasSubmittedFeedback(proxy.id, "DESKTOP");
-
-        desktopContentNode.innerHTML = `
-          <article class="featured-card">
-            <div class="proxy-topline">
-              <div class="proxy-main">
-                <h3 class="proxy-address">${escapeHtml(proxy.host)}:${escapeHtml(proxy.port)}</h3>
-                <p class="proxy-caption">${escapeHtml(verification.description)}.</p>
-              </div>
-            </div>
-
-            <div class="badge-row">
-              ${verificationBadge(proxy)}
-              <div class="${badgeClass}">${escapeHtml(proxy.status || "UNKNOWN")}</div>
-            </div>
-
-            <div class="stats">
-              <div class="stat">
-                <div class="stat-label">Score</div>
-                <div class="stat-value">${escapeHtml(proxy.score ?? "N/A")}</div>
-              </div>
-              <div class="stat">
-                <div class="stat-label">Latency</div>
-                <div class="stat-value ${latencyClass}">
-                  <span class="latency-dot"></span>
-                  <span>${escapeHtml(formatLatency(proxy.lastLatencyMs))}</span>
-                </div>
-              </div>
-              <div class="stat">
-                <div class="stat-label">Status</div>
-                <div class="stat-value">${escapeHtml(proxy.status || "UNKNOWN")}</div>
-              </div>
-            </div>
-
-            <div class="actions">
-              <a class="btn primary ${hasDeepLink ? "" : "disabled"}" href="${escapeHtml(actionHref(proxy.telegramDeepLink))}" ${hasDeepLink ? "" : 'aria-disabled="true" tabindex="-1"'}>Open in Telegram</a>
-              <a class="btn ${hasWebLink ? "" : "disabled"}" href="${escapeHtml(actionHref(proxy.telegramWebLink))}" ${hasWebLink ? 'target="_blank" rel="noreferrer"' : 'aria-disabled="true" tabindex="-1"'}>Open via Web</a>
-              <button class="btn" id="copyDesktopLinkBtn" type="button" ${copyLink ? "" : "disabled"}>Copy Link</button>
-              <button class="btn secondary" id="nextProxyBtn" type="button" ${hasNext ? "" : "disabled"}>${hasNext ? "Try Next Proxy" : "No More Proxies"}</button>
-            </div>
-
-            <div class="desktop-helper">
-              Desktop mode works best when you test one route at a time and move to the next candidate only if the current proxy does not behave well.
-            </div>
-
-            <div class="feedback-actions">
-              <button class="btn feedback-positive" id="desktopWorkedBtn" type="button" ${desktopFeedbackLocked ? "disabled" : ""}>Worked</button>
-              <button class="btn feedback-negative" id="desktopFailedBtn" type="button" ${desktopFeedbackLocked ? "disabled" : ""}>Failed</button>
-            </div>
-            <div class="feedback-note">
-              Send quick feedback after trying this proxy in Telegram. Desktop feedback is stored with platform = DESKTOP.
-            </div>
-
-            <div class="legend">
-              <div class="legend-title">Verification Guide</div>
-              <div class="legend-line">Verified = confirmed by deep MTProto check and safe to prioritize.</div>
-              <div class="legend-line">TCP only = reachable, but not fully confirmed as a working MTProto proxy.</div>
-            </div>
-          </article>
-        `;
-
-        document.getElementById("copyDesktopLinkBtn").addEventListener("click", async () => {
-            try {
-                await copyText(copyLink);
-                showToast("Telegram link copied");
-            } catch (error) {
-                showToast("Copy failed");
-            }
-        });
-
-        const nextProxyBtn = document.getElementById("nextProxyBtn");
-        if (nextProxyBtn && hasNext) {
-            nextProxyBtn.addEventListener("click", () => {
-                state.currentIndex += 1;
-                renderDesktop();
-                showToast(`Switched to proxy ${state.currentIndex + 1}`);
-            });
-        }
-
-        const desktopWorkedBtn = document.getElementById("desktopWorkedBtn");
-        const desktopFailedBtn = document.getElementById("desktopFailedBtn");
-        const desktopFeedbackButtons = [desktopWorkedBtn, desktopFailedBtn];
-
-        function lockDesktopFeedbackButtons() {
-            desktopFeedbackButtons.forEach(button => {
-                if (button) {
-                    button.disabled = true;
-                }
-            });
-        }
-
-        async function handleDesktopFeedback(result) {
-            try {
-                lockDesktopFeedbackButtons();
-                await sendFeedback(proxy.id, result, "DESKTOP");
-                markFeedbackSubmitted(proxy.id, "DESKTOP");
-                showToast(result === "WORKED" ? "Desktop feedback saved: worked" : "Desktop feedback saved: failed");
-            } catch (error) {
-                desktopFeedbackButtons.forEach(button => {
-                    if (button && !desktopFeedbackLocked) {
-                        button.disabled = false;
-                    }
-                });
-                showToast("Feedback failed");
-                console.error(error);
-            }
-        }
-
-        if (desktopWorkedBtn) {
-            desktopWorkedBtn.addEventListener("click", () => handleDesktopFeedback("WORKED"));
-        }
-
-        if (desktopFailedBtn) {
-            desktopFailedBtn.addEventListener("click", () => handleDesktopFeedback("FAILED"));
-        }
-    }
-
-    function renderMobile() {
-        const packProxies = getMobilePackProxies();
-        mobilePackSizeNode.textContent = `Pack: ${packProxies.length}`;
-
-        if (!packProxies.length) {
-            mobileContentNode.innerHTML = createEmptyPanel("No proxies available for mobile pack generation.");
-            return;
-        }
-
-        const verifiedProxies = packProxies.filter(proxy => proxy.verificationStatus === "VERIFIED");
-        const fallbackProxies = packProxies.filter(proxy => proxy.verificationStatus !== "VERIFIED");
-        const topMobileProxy = packProxies[0] ?? null;
-        const mobileFeedbackLocked = topMobileProxy ? hasSubmittedFeedback(topMobileProxy.id, "MOBILE") : true;
-
-        function renderProxyRows(proxies, title) {
-            if (!proxies.length) {
-                return "";
-            }
-
-            const rows = proxies.map(proxy => {
-            const latencyClass = latencyTone(proxy.lastLatencyMs);
-            return `
-            <div class="proxy-row">
-              <div class="proxy-row-main">
-                <div class="proxy-row-address">${escapeHtml(proxy.host)}:${escapeHtml(proxy.port)}</div>
-                <div class="proxy-row-caption">${escapeHtml(proxy.status || "UNKNOWN")}</div>
-                <div class="proxy-row-badges">
-                  ${verificationBadge(proxy)}
-                </div>
-              </div>
-              <div class="proxy-row-metric">
-                <div class="proxy-row-label">Score</div>
-                <div class="proxy-row-value">${escapeHtml(proxy.score ?? "N/A")}</div>
-              </div>
-              <div class="proxy-row-metric">
-                <div class="proxy-row-label">Latency</div>
-                <div class="proxy-row-value ${latencyClass}">
-                  <span class="latency-dot"></span>
-                  <span>${escapeHtml(formatLatency(proxy.lastLatencyMs))}</span>
-                </div>
-              </div>
-            </div>
-          `;
-            }).join("");
-
-            return `
-              <div class="list-title">${escapeHtml(title)}</div>
-              <div class="list">${rows}</div>
-            `;
-        }
-
-        mobileContentNode.innerHTML = `
-          ${renderProxyRows(verifiedProxies, "Verified for Mobile")}
-          ${renderProxyRows(fallbackProxies, "TCP-only Fallback")}
-          <div class="mobile-actions">
-            <button class="btn primary" id="copyProxyPackBtn" type="button">Copy Proxy Pack</button>
-            <button class="btn" id="copyWebPackBtn" type="button">Copy Web Links Pack</button>
-          </div>
-          <div class="feedback-actions">
-            <button class="btn feedback-positive" id="mobileWorkedBtn" type="button" ${topMobileProxy && !mobileFeedbackLocked ? "" : "disabled"}>Worked</button>
-            <button class="btn feedback-negative" id="mobileFailedBtn" type="button" ${topMobileProxy && !mobileFeedbackLocked ? "" : "disabled"}>Failed</button>
-          </div>
-          <div class="mobile-note">
-            Copy packs are generated in verified-first order so confirmed MTProto proxies appear before TCP-only fallbacks.
-          </div>
-          <div class="feedback-note">
-            Mobile feedback is attached to the top proxy in the current mobile pack ordering.
-          </div>
-        `;
-
-        document.getElementById("copyProxyPackBtn").addEventListener("click", async () => {
-            try {
-                const pack = buildLinkPack(packProxies, "telegramDeepLink");
-                await copyText(pack);
-                showToast("Proxy pack copied");
-            } catch (error) {
-                showToast("Copy failed");
-            }
-        });
-
-        document.getElementById("copyWebPackBtn").addEventListener("click", async () => {
-            try {
-                const pack = buildLinkPack(packProxies, "telegramWebLink");
-                await copyText(pack);
-                showToast("Web links pack copied");
-            } catch (error) {
-                showToast("Copy failed");
-            }
-        });
-
-        const mobileWorkedBtn = document.getElementById("mobileWorkedBtn");
-        const mobileFailedBtn = document.getElementById("mobileFailedBtn");
-        const mobileFeedbackButtons = [mobileWorkedBtn, mobileFailedBtn];
-
-        function lockMobileFeedbackButtons() {
-            mobileFeedbackButtons.forEach(button => {
-                if (button) {
-                    button.disabled = true;
-                }
-            });
-        }
-
-        async function handleMobileFeedback(result) {
-            if (!topMobileProxy) {
-                return;
-            }
-
-            try {
-                lockMobileFeedbackButtons();
-                await sendFeedback(topMobileProxy.id, result, "MOBILE");
-                markFeedbackSubmitted(topMobileProxy.id, "MOBILE");
-                showToast(result === "WORKED" ? "Mobile feedback saved: worked" : "Mobile feedback saved: failed");
-            } catch (error) {
-                mobileFeedbackButtons.forEach(button => {
-                    if (button && !mobileFeedbackLocked) {
-                        button.disabled = false;
-                    }
-                });
-                showToast("Feedback failed");
-                console.error(error);
-            }
-        }
-
-        if (mobileWorkedBtn && topMobileProxy && !mobileFeedbackLocked) {
-            mobileWorkedBtn.addEventListener("click", () => handleMobileFeedback("WORKED"));
-        }
-
-        if (mobileFailedBtn && topMobileProxy && !mobileFeedbackLocked) {
-            mobileFailedBtn.addEventListener("click", () => handleMobileFeedback("FAILED"));
-        }
-    }
-
-    function renderAll() {
-        proxyCountNode.textContent = String(state.proxies.length);
-        renderDesktop();
-        renderMobile();
-    }
-
-    async function loadProxies() {
-        setStatus("Loading proxies...");
-
-        try {
-            const response = await fetch(API_URL, {
-                headers: { "Accept": "application/json" }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!Array.isArray(data) || data.length === 0) {
-                setProxyData([]);
-                resetUi("No proxies available.");
-                setStatus("No proxies available");
-                return;
-            }
-
-            setProxyData(data);
-            renderAll();
-            setStatus(`Loaded ${state.proxies.length} proxies from backend`);
-        } catch (error) {
-            setProxyData([]);
-            resetUi("Failed to load proxy data.");
-            setStatus("Failed to load proxies. Make sure the backend is reachable.", true);
-            console.error(error);
-        }
-    }
-
-    loadProxies();
+const BEST_API="/api/v1/proxies/best",STATS_API="/api/v1/proxies/stats",FEEDBACK_BASE="/api/v1/proxies",PACK_LIMIT=6,QUEUE_LIMIT=4;
+const state={proxies:[],stats:null,currentIndex:0,submitted:new Set()};
+const $=id=>document.getElementById(id);
+let toastTimer=null;
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
+function setStatus(msg,err=false){$("status").textContent=msg;$("status").classList.toggle("error",err)}
+function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),1800)}
+function empty(msg){return `<div class="empty">${esc(msg)}</div>`}
+function fmtCount(v){return Number(v??0).toLocaleString("ru-RU")}
+function fmtLatency(v){return v==null||v<0?"нет данных":`${v} мс`}
+function tone(v){if(v==null||v<0)return"bad";if(v<=140)return"good";if(v<=320)return"mid";return"bad"}
+function relTime(v){if(!v)return"нет данных";const d=new Date(v);if(Number.isNaN(d.getTime()))return"нет данных";const m=Math.round((Date.now()-d.getTime())/60000);if(m<=1)return"только что";if(m<60)return`${m} мин назад`;const h=Math.round(m/60);if(h<24)return`${h} ч назад`;return`${Math.round(h/24)} дн назад`}
+function vMeta(p){switch(p.verificationStatus){case"VERIFIED":return{label:"Verified",className:"verified",caption:"Подтвержден deep MTProto-check"};case"QUICK_OK":return{label:"TCP only",className:"quick",caption:"Маршрут отвечает, но deep-check не подтвердил его полностью"};default:return{label:"Unverified",className:"unverified",caption:"Свежего подтверждения пока нет"}}}
+function vRank(p){return p.verificationStatus==="VERIFIED"?0:p.verificationStatus==="QUICK_OK"?1:2}
+function normalizeProxy(raw){return{id:raw?.id??null,host:String(raw?.host??""),port:raw?.port??null,source:String(raw?.source??""),status:String(raw?.status??"UNKNOWN"),verificationStatus:String(raw?.verificationStatus??"UNVERIFIED"),score:raw?.score??null,lastLatencyMs:raw?.lastLatencyMs??null,lastCheckedAt:raw?.lastCheckedAt??null,lastSuccessAt:raw?.lastSuccessAt??null,consecutiveFailures:raw?.consecutiveFailures??0,consecutiveSuccesses:raw?.consecutiveSuccesses??0,telegramDeepLink:raw?.telegramDeepLink??"",telegramWebLink:raw?.telegramWebLink??""}}
+function normalizeStats(raw){return{aliveCount:raw?.aliveCount??0,verifiedCount:raw?.verifiedCount??0,recentChecks:raw?.recentChecks??{totalChecks:0,successfulDeepChecks:0,failedDeepChecks:0}}}
+function feedbackKey(id,platform){return`${id}:${platform}`}function hasFeedback(id,platform){return state.submitted.has(feedbackKey(id,platform))}function markFeedback(id,platform){state.submitted.add(feedbackKey(id,platform))}
+async function copyText(text){if(!text)throw new Error("Nothing to copy");if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return}const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.focus();t.select();const ok=document.execCommand("copy");t.remove();if(!ok)throw new Error("Copy failed")}
+async function sendFeedback(id,result,platform){const r=await fetch(`${FEEDBACK_BASE}/${id}/feedback`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({result,platform})});if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()}
+function updateMetrics(){const s=state.stats;const deep=(s?.recentChecks?.successfulDeepChecks??0)+(s?.recentChecks?.failedDeepChecks??0);const rate=deep===0?0:Math.round(((s?.recentChecks?.successfulDeepChecks??0)/deep)*100);$("heroCount").textContent=fmtCount(state.proxies.length);$("aliveCount").textContent=fmtCount(s?.aliveCount??0);$("verifiedCount").textContent=fmtCount(s?.verifiedCount??0);$("checksCount").textContent=fmtCount(s?.recentChecks?.totalChecks??0);$("deepRate").textContent=`${rate}%`}
+function current(){return state.proxies[state.currentIndex]||null}
+function buildPack(proxies,key){return proxies.map(p=>p[key]).filter(Boolean).join("\n")}
+function mobilePack(){return[...state.proxies].sort((a,b)=>{const rd=vRank(a)-vRank(b);if(rd!==0)return rd;const sd=(b.score??-1)-(a.score??-1);if(sd!==0)return sd;return(a.lastLatencyMs??Number.MAX_SAFE_INTEGER)-(b.lastLatencyMs??Number.MAX_SAFE_INTEGER)}).slice(0,PACK_LIMIT)}
+function renderDesktop(){const p=current(),total=state.proxies.length;$("desktopPos").textContent=`Маршрут ${total?state.currentIndex+1:0} / ${total}`;if(!p){$("desktopPanel").innerHTML=empty("Сейчас нет маршрута для быстрого старта.");return}const vm=vMeta(p),statusClass=p.status==="ALIVE"?"alive":"other",feedbackLocked=hasFeedback(p.id,"DESKTOP"),nextExists=state.currentIndex<total-1;$("desktopPanel").innerHTML=`<article class="panel"><div class="topline"><div><h3 class="addr">${esc(p.host)}:${esc(p.port)}</h3><p class="meta-note">${esc(vm.caption)}.</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="tagrow"><div class="pill ${statusClass}">${esc(p.status)}</div><div class="pill ${vm.className}">Score ${esc(p.score??"N/A")}</div><div class="pill ${vm.className}">${esc(p.source||"source unknown")}</div></div><div class="facts"><div class="fact"><div class="label">Задержка</div><div class="fact-value"><span class="dot ${tone(p.lastLatencyMs)}"></span>${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="fact"><div class="label">Последний успех</div><div class="fact-value">${esc(relTime(p.lastSuccessAt))}</div></div><div class="fact"><div class="label">Проверен</div><div class="fact-value">${esc(relTime(p.lastCheckedAt))}</div></div><div class="fact"><div class="label">Серия</div><div class="fact-value">${esc(p.consecutiveSuccesses??0)} ok / ${esc(p.consecutiveFailures??0)} fail</div></div></div><div class="actions"><a class="btn primary ${p.telegramDeepLink?"":"disabled"}" href="${esc(p.telegramDeepLink||"#")}">Открыть в Telegram</a><a class="btn ${p.telegramWebLink?"":"disabled"}" href="${esc(p.telegramWebLink||"#")}" target="_blank" rel="noreferrer">Открыть как ссылку</a><button class="btn secondary" id="copyCurrentBtn" type="button" ${p.telegramDeepLink||p.telegramWebLink?"":"disabled"}>Скопировать ссылку</button><button class="btn" id="nextBtn" type="button" ${nextExists?"":"disabled"}>${nextExists?"Попробовать следующий":"Это последний вариант"}</button></div><div class="feedback"><button class="btn goodbtn" id="desktopOk" type="button" ${feedbackLocked?"disabled":""}>Сработало</button><button class="btn badbtn" id="desktopFail" type="button" ${feedbackLocked?"disabled":""}>Не сработало</button></div><div class="micro">Сначала пробуй верхний маршрут. Если он не сработал именно у тебя, переключайся дальше по очереди без нового поиска.</div></article>`;
+const copyBtn=$("copyCurrentBtn");if(copyBtn)copyBtn.addEventListener("click",async()=>{try{await copyText(p.telegramDeepLink||p.telegramWebLink);toast("Ссылка скопирована")}catch{toast("Не удалось скопировать")}});
+const nextBtn=$("nextBtn");if(nextBtn&&nextExists)nextBtn.addEventListener("click",()=>{state.currentIndex+=1;renderDesktop();toast(`Открыт маршрут ${state.currentIndex+1}`)});
+const okBtn=$("desktopOk"),failBtn=$("desktopFail"),buttons=[okBtn,failBtn];const lock=()=>buttons.forEach(b=>b&&(b.disabled=true));async function handle(result){try{lock();await sendFeedback(p.id,result,"DESKTOP");markFeedback(p.id,"DESKTOP");toast(result==="WORKED"?"Фидбек сохранен: сработало":"Фидбек сохранен: fail")}catch{buttons.forEach(b=>b&&!feedbackLocked&&(b.disabled=false));toast("Не удалось отправить фидбек")}}if(okBtn)okBtn.addEventListener("click",()=>handle("WORKED"));if(failBtn)failBtn.addEventListener("click",()=>handle("FAILED"))}
+function renderMobile(){const list=mobilePack(),top=list[0]||null,feedbackLocked=top?hasFeedback(top.id,"MOBILE"):true;$("mobileSize").textContent=`Пакет ${list.length}`;if(!list.length){$("mobilePanel").innerHTML=empty("Пока нет данных, чтобы собрать мобильный пакет.");return}const cards=list.map(p=>{const vm=vMeta(p);return`<article class="proxy-card"><div class="proxy-top"><div><h3 class="proxy-title">${esc(p.host)}:${esc(p.port)}</h3><p class="proxy-copy">${esc(vm.caption)}</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(p.score??"N/A")}</div></div><div class="meta-cell"><div class="meta-label">Latency</div><div class="meta-value">${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Источник</div><div class="meta-value">${esc(p.source||"n/a")}</div></div></div></article>`}).join("");$("mobilePanel").innerHTML=`<div class="list">${cards}</div><div class="pack-actions"><button class="btn primary" id="copyPackBtn" type="button">Скопировать tg:// pack</button><button class="btn" id="copyWebPackBtn" type="button">Скопировать web pack</button></div><div class="feedback"><button class="btn goodbtn" id="mobileOk" type="button" ${top&&!feedbackLocked?"":"disabled"}>На телефоне сработало</button><button class="btn badbtn" id="mobileFail" type="button" ${top&&!feedbackLocked?"":"disabled"}>На телефоне не сработало</button></div><div class="micro">Пакет собирается в verified-first порядке: сначала более надежные маршруты, затем fallback-варианты.</div>`;
+$("copyPackBtn").addEventListener("click",async()=>{try{await copyText(buildPack(list,"telegramDeepLink"));toast("Пакет tg:// скопирован")}catch{toast("Не удалось скопировать пакет")}});
+$("copyWebPackBtn").addEventListener("click",async()=>{try{await copyText(buildPack(list,"telegramWebLink"));toast("Пакет web-ссылок скопирован")}catch{toast("Не удалось скопировать пакет")}});
+const okBtn=$("mobileOk"),failBtn=$("mobileFail"),buttons=[okBtn,failBtn];const lock=()=>buttons.forEach(b=>b&&(b.disabled=true));async function handle(result){if(!top)return;try{lock();await sendFeedback(top.id,result,"MOBILE");markFeedback(top.id,"MOBILE");toast(result==="WORKED"?"Мобильный фидбек сохранен":"Мобильный фидбек сохранен: fail")}catch{buttons.forEach(b=>b&&!feedbackLocked&&(b.disabled=false));toast("Не удалось отправить фидбек")}}if(okBtn&&top&&!feedbackLocked)okBtn.addEventListener("click",()=>handle("WORKED"));if(failBtn&&top&&!feedbackLocked)failBtn.addEventListener("click",()=>handle("FAILED"))}
+function renderQueue(){const list=state.proxies.slice(1,QUEUE_LIMIT+1);if(!list.length){$("queuePanel").innerHTML=empty("Пока нет отдельного короткого списка запасных маршрутов.");return}$("queuePanel").innerHTML=`<div class="list">${list.map((p,i)=>{const vm=vMeta(p);return`<article class="queue-item"><div class="queue-top"><div><h3 class="queue-title">#${i+2} ${esc(p.host)}:${esc(p.port)}</h3><p class="queue-copy">${esc(vm.caption)}</p></div><div class="pill ${vm.className}">${esc(vm.label)}</div></div><div class="meta-grid"><div class="meta-cell"><div class="meta-label">Score</div><div class="meta-value">${esc(p.score??"N/A")}</div></div><div class="meta-cell"><div class="meta-label">Latency</div><div class="meta-value">${esc(fmtLatency(p.lastLatencyMs))}</div></div><div class="meta-cell"><div class="meta-label">Проверен</div><div class="meta-value">${esc(relTime(p.lastCheckedAt))}</div></div></div></article>`}).join("")}</div>`}
+function renderAll(){updateMetrics();renderDesktop();renderMobile();renderQueue()}
+async function loadData(){setStatus("Загружаю лучшие маршруты и статистику...");try{const[bestRes,statsRes]=await Promise.all([fetch(BEST_API,{headers:{Accept:"application/json"}}),fetch(STATS_API,{headers:{Accept:"application/json"}})]);if(!bestRes.ok)throw new Error(`Best HTTP ${bestRes.status}`);if(!statsRes.ok)throw new Error(`Stats HTTP ${statsRes.status}`);const[bestData,statsData]=await Promise.all([bestRes.json(),statsRes.json()]);state.proxies=Array.isArray(bestData)?bestData.map(normalizeProxy).filter(p=>p.host&&p.port!=null):[];state.stats=normalizeStats(statsData);state.currentIndex=0;if(!state.proxies.length){updateMetrics();$("desktopPanel").innerHTML=empty("Сейчас нет прокси, которые можно показать пользователю.");$("mobilePanel").innerHTML=empty("Мобильный пакет пока пуст.");$("queuePanel").innerHTML=empty("Запасной список пока пуст.");setStatus("Каталог пока пуст. Источники или проверки еще не наполнили выдачу.",true);return}renderAll();setStatus(`Загружено ${state.proxies.length} лучших маршрутов. Сначала пробуй верхний, потом переключайся дальше по очереди.`)}catch(error){$("heroCount").textContent="0";$("aliveCount").textContent="0";$("verifiedCount").textContent="0";$("checksCount").textContent="0";$("deepRate").textContent="0%";$("desktopPanel").innerHTML=empty("Не удалось загрузить быстрый старт.");$("mobilePanel").innerHTML=empty("Не удалось собрать мобильный пакет.");$("queuePanel").innerHTML=empty("Не удалось получить запасные маршруты.");setStatus("Не удалось загрузить данные. Проверь, что backend доступен и API отвечает.",true);console.error(error)}}
+loadData();
 </script>
 </body>
 </html>
