@@ -95,6 +95,7 @@ public class GlobalApiExceptionHandler {
             case BAD_REQUEST -> "BAD_REQUEST";
             case NOT_FOUND -> "NOT_FOUND";
             case CONFLICT -> "CONFLICT";
+            case FORBIDDEN -> "FORBIDDEN";
             case TOO_MANY_REQUESTS -> "RATE_LIMITED";
             default -> "REQUEST_FAILED";
         };

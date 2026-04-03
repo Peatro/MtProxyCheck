@@ -54,6 +54,11 @@ app:
     dedupe-window-minutes: 60
     recent-limit: 20
 
+  admin:
+    enabled: false
+    header-name: X-Admin-Key
+    key:
+
   rate-limit:
     enabled: true
     public-read-limit: 120

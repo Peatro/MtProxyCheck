@@ -22,6 +22,10 @@ app:
     fixed-delay-ms: 3600000
     deep-probe-limit: 5
     batch-size: 50
+  admin:
+    enabled: true
+    header-name: X-Admin-Key
+    key: test-admin-key
   rate-limit:
     enabled: true
     public-read-limit: 2
