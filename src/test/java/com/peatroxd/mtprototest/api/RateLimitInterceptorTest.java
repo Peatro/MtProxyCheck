@@ -39,6 +39,32 @@ class RateLimitInterceptorTest {
                 .hasMessageContaining("429");
     }
 
+    @Test
+    void shouldRateLimitVersionedPublicReadRequests() throws Exception {
+        RateLimitInterceptor interceptor = interceptor(2, 1);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThatCode(() -> interceptor.preHandle(getRequest("/api/v1/proxies/best", "reader-v1"), response, new Object()))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> interceptor.preHandle(getRequest("/api/v1/proxies/stats", "reader-v1"), response, new Object()))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> interceptor.preHandle(getRequest("/api/v1/proxies", "reader-v1"), response, new Object()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429");
+    }
+
+    @Test
+    void shouldRateLimitVersionedFeedbackRequests() throws Exception {
+        RateLimitInterceptor interceptor = interceptor(10, 1);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertThatCode(() -> interceptor.preHandle(postRequest("/api/v1/proxies/1/feedback", "writer-v1"), response, new Object()))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> interceptor.preHandle(postRequest("/api/v1/proxies/1/feedback", "writer-v1"), response, new Object()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("429");
+    }
+
     private RateLimitInterceptor interceptor(int publicReadLimit, int feedbackWriteLimit) {
         RateLimitProperties properties = new RateLimitProperties();
         properties.setEnabled(true);

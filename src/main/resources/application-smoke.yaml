@@ -1,0 +1,16 @@
+spring:
+  config:
+    activate:
+      on-profile: smoke
+
+app:
+  startup:
+    bootstrap-enabled: false
+
+  parser:
+    initial-delay-ms: 3600000
+    fixed-delay-ms: 3600000
+
+  checker:
+    initial-delay-ms: 3600000
+    fixed-delay-ms: 3600000

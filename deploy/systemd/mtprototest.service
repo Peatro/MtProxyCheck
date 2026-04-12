@@ -1,0 +1,22 @@
+[Unit]
+Description=Mtprototest Spring Boot application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mtproto
+Group=mtproto
+WorkingDirectory=/opt/mtprototest
+EnvironmentFile=/etc/mtprototest/mtprototest.env
+ExecStart=/usr/bin/java -jar /opt/mtprototest/app.jar --spring.profiles.active=prod
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

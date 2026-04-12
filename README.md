@@ -195,10 +195,11 @@ Production-style profile run:
 
 ### Local Smoke Run Without Startup Bootstrap
 
-Useful for a quick local API/health check without doing a full startup import/check pass:
+Useful for a quick local API/health check without doing a full startup import/check pass.
+This uses the normal runtime stack and still expects PostgreSQL; it is not the test profile:
 
 ```powershell
-.\gradlew.bat bootRun "--args=--spring.profiles.active=test --server.port=18081 --app.startup.bootstrap-enabled=false --app.admin.enabled=true --app.admin.key=test-admin-key"
+.\gradlew.bat bootRun "--args=--spring.profiles.active=smoke --server.port=18081 --app.admin.enabled=true --app.admin.key=test-admin-key"
 ```
 
 Then verify:
@@ -211,6 +212,7 @@ Notes:
 
 - if `app.startup.bootstrap-enabled=false`, the application can start correctly while `/actuator/health` still reports `DOWN/503`
 - this is expected until at least one successful import cycle produces source snapshots for the custom `proxyImports` health contributor
+- the `smoke` profile disables startup bootstrap and pushes parser/checker schedules far enough out to keep the run quiet
 
 ### Tests
 
@@ -294,14 +296,27 @@ Minimum deployment assumptions for `v1`:
 - `app.startup.bootstrap-enabled` can stay on for small catalogs, but bounded startup settings should remain conservative
 - monitor `/actuator/health` and `/actuator/prometheus` from day one
 
+For this repository, reverse proxy and TLS termination are treated as external infrastructure.
+The application only assumes that the external reverse proxy:
+
+- forwards the real client IP consistently
+- keeps `/api/v1/proxies/*` and the public website open
+- restricts `/api/v1/admin/*`, `/api/v1/check/*`, `/api/v1/import/*`, and `/actuator/*` at the network or edge layer
+
+Application-side VPS deployment artifacts:
+
+- [`deploy/DEPLOY_TO_VPS.md`](./deploy/DEPLOY_TO_VPS.md)
+- [`deploy/systemd/mtprototest.service`](./deploy/systemd/mtprototest.service)
+- [`deploy/env/mtprototest.env.example`](./deploy/env/mtprototest.env.example)
+
 Release and launch checks are tracked in [RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md).
 
 ## Current Limitations
 
 These are known gaps before `v1` launch:
 
-- only one external source is configured right now
-- public API still needs hardening and rate limiting
+- current source mix still needs final VPS-side observation and confirmation after deployment
+- edge restrictions and public-surface validation still need final VPS-side verification
 - website UX is still closer to a functional demo than a finished product
 - admin surface is minimal
 - retention policy for large historical datasets is not finalized
@@ -311,9 +326,9 @@ These are known gaps before `v1` launch:
 
 Near-term priorities:
 
-- add multi-source ingestion
+- stabilize multi-source ingestion quality
 - improve source quality visibility
-- harden public API and feedback abuse protection
+- finish public API hardening and abuse validation on the real public path
 - turn the web UI into a polished B2C website
 - add admin controls for moderation and manual recheck
 - complete observability and launch preparation

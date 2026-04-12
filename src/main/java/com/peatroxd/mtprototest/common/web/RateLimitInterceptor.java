@@ -57,15 +57,23 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        if ("POST".equalsIgnoreCase(method) && path.matches(".*/api/proxies/\\d+/feedback$")) {
+        if ("POST".equalsIgnoreCase(method) && isProxyFeedbackPath(path)) {
             return new RateLimitRule("feedback", rateLimitProperties.getFeedbackWriteLimit(), rateLimitProperties.getFeedbackWriteWindowMs());
         }
 
-        if ("GET".equalsIgnoreCase(method) && path.startsWith("/api/proxies")) {
+        if ("GET".equalsIgnoreCase(method) && isPublicProxyReadPath(path)) {
             return new RateLimitRule("public-read", rateLimitProperties.getPublicReadLimit(), rateLimitProperties.getPublicReadWindowMs());
         }
 
         return null;
+    }
+
+    private boolean isProxyFeedbackPath(String path) {
+        return path.matches("^/api(?:/v1)?/proxies/\\d+/feedback$");
+    }
+
+    private boolean isPublicProxyReadPath(String path) {
+        return path.startsWith("/api/proxies") || path.startsWith("/api/v1/proxies");
     }
 
     private record RateLimitRule(String keyPrefix, int limit, long windowMs) {

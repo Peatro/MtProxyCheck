@@ -3,12 +3,13 @@
 ## Fresh Start
 
 - [ ] `./gradlew test` passes
-- [ ] application starts locally with the intended profile
+- [ ] application starts locally with the intended `prod` or `smoke` runtime profile
 - [ ] Liquibase migrations apply cleanly on an empty database
 - [ ] `/actuator/health` returns `UP`
   Use the normal launch profile or allow at least one successful import/check cycle to complete first; with startup bootstrap disabled, custom operational health may stay `DOWN`
 - [ ] `/actuator/prometheus` is reachable
-- [ ] `/docs` and `/v3/api-docs` are reachable
+- [ ] `/docs` and `/v3/api-docs` are reachable for local smoke runs
+- [ ] Swagger remains disabled in production unless deliberately enabled for a bounded reason
 
 ## Configuration
 
@@ -16,6 +17,7 @@
 - [ ] `app.admin.enabled=true` outside local development
 - [ ] `app.admin.key` is set and not empty
 - [ ] enabled proxy sources are reviewed and reachable
+- [ ] the configured `4` source feeds import successfully on the target VPS
 - [ ] startup batch and deep probe limits are reviewed for the current catalog size
 - [ ] checker batch size and executor concurrency are reviewed for the current catalog size
 - [ ] public rate limits are reviewed
