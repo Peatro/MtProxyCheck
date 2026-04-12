@@ -3,403 +3,959 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTProto Proxy Catalog</title>
+    <title>MtProxy — MTProto прокси для Telegram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
+        /* ============================================================
+           DESIGN SYSTEM — Coinbase-inspired
+           Ref: DESIGN.md
+           · Blue #0052ff — singular brand accent, functional only
+           · White #ffffff + Near-black #0a0b0d — alternating sections
+           · 56px radius pill CTAs
+           · Inter as display/sans/text substitute
+           · Ultra-tight 1.00 line-height on display headings
+           · Minimal shadows — depth via color contrast
+        ============================================================ */
+
+        /* ── TOKENS ─────────────────────────────────────────────── */
         :root {
-            --bg: #f3efe7;
-            --surface: #fffdf9;
-            --surface-soft: #f7f3ec;
-            --line: #dfd4c6;
-            --line-strong: #ccbca8;
-            --ink: #1f1b16;
-            --muted: #6a6158;
-            --accent: #cc5a2f;
-            --accent-soft: #fff1ea;
-            --safe: #1d6a48;
-            --safe-soft: #ebf7f1;
-            --warn: #9b6a11;
-            --warn-soft: #fff6df;
-            --idle: #6b635a;
-            --idle-soft: #f1ece5;
-            --danger: #a13d35;
-            --danger-soft: #fceceb;
-            --shadow: 0 16px 36px rgba(55, 34, 16, .08);
-            --content: 1160px;
+            /* Brand */
+            --blue:        #0052ff;
+            --blue-hover:  #578bfa;
+            --blue-dim:    rgba(0, 82, 255, 0.08);
+
+            /* Light theme (default) */
+            --bg:           #ffffff;
+            --surface:      #ffffff;
+            --surface-2:    #eef0f3;
+            --surface-3:    rgba(247, 247, 247, 0.88);
+            --ink:          #0a0b0d;
+            --ink-2:        #1a1d23;
+            --muted:        #5b616e;
+            --border:       rgba(91, 97, 110, 0.2);
+            --border-s:     rgba(91, 97, 110, 0.12);
+
+            /* Status — light */
+            --c-ok:         #166534;
+            --c-ok-bg:      #f0fdf4;
+            --c-ok-border:  rgba(22, 101, 52, 0.2);
+            --c-warn:       #92400e;
+            --c-warn-bg:    #fef3c7;
+            --c-warn-border:rgba(146, 64, 14, 0.2);
+            --c-idle:       #374151;
+            --c-idle-bg:    #f3f4f6;
+            --c-idle-border:rgba(55, 65, 81, 0.18);
+            --c-safe:       #166534;
+            --c-safe-bg:    #f0fdf4;
+            --c-safe-border:rgba(22, 101, 52, 0.2);
+            --c-danger:     #991b1b;
+            --c-danger-bg:  #fef2f2;
+            --c-danger-border:rgba(153, 27, 27, 0.2);
+
+            --content: 1200px;
         }
 
-        * { box-sizing: border-box; }
-        html, body { margin: 0; min-height: 100%; }
+        /* ── DARK SECTION THEME ──────────────────────────────────── */
+        .dark {
+            background-color: #0a0b0d;
+            color: #ffffff;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+            --surface:      #16181d;
+            --surface-2:    #1e2128;
+            --surface-3:    #282b31;
+            --ink:          #ffffff;
+            --ink-2:        rgba(255, 255, 255, 0.87);
+            --muted:        rgba(255, 255, 255, 0.45);
+            --border:       rgba(255, 255, 255, 0.1);
+            --border-s:     rgba(255, 255, 255, 0.06);
+
+            --c-ok:         #4ade80;
+            --c-ok-bg:      rgba(74, 222, 128, 0.14);
+            --c-ok-border:  rgba(74, 222, 128, 0.25);
+            --c-warn:       #fbbf24;
+            --c-warn-bg:    rgba(251, 191, 36, 0.14);
+            --c-warn-border:rgba(251, 191, 36, 0.25);
+            --c-idle:       rgba(255, 255, 255, 0.4);
+            --c-idle-bg:    rgba(255, 255, 255, 0.08);
+            --c-idle-border:rgba(255, 255, 255, 0.14);
+            --c-safe:       #4ade80;
+            --c-safe-bg:    rgba(74, 222, 128, 0.14);
+            --c-safe-border:rgba(74, 222, 128, 0.25);
+            --c-danger:     #f87171;
+            --c-danger-bg:  rgba(248, 113, 113, 0.14);
+            --c-danger-border:rgba(248, 113, 113, 0.25);
+        }
+
+        /* ── RESET ───────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
         body {
-            font-family: "Manrope", "IBM Plex Sans", "Segoe UI", sans-serif;
+            font-family: "Inter", system-ui, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
             color: var(--ink);
-            background:
-                radial-gradient(circle at top left, rgba(204, 90, 47, .07), transparent 30%),
-                linear-gradient(180deg, #f8f5ef 0%, var(--bg) 55%, #ede7dd 100%);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
         }
-
-        a { color: inherit; }
+        a { color: inherit; text-decoration: none; }
         button, input, textarea { font: inherit; }
 
-        .page { width: min(calc(100% - 24px), var(--content)); margin: 14px auto 28px; }
-        .shell { display: grid; gap: 18px; }
+        /* ── LAYOUT ──────────────────────────────────────────────── */
+        .container { width: min(calc(100% - 48px), var(--content)); margin: 0 auto; }
 
-        .hero,
-        .stat,
-        .card,
-        .faq-item {
-            background: rgba(255, 253, 249, .9);
-            border: 1px solid var(--line);
-            box-shadow: var(--shadow);
+        /* ── SITE HEADER ─────────────────────────────────────────── */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-s);
+            transition: box-shadow .2s;
         }
-
-        .hero { border-radius: 36px; padding: 32px; }
-        .card { border-radius: 30px; padding: 24px; }
-        .card.hero-card {
-            padding: 28px;
-            background: linear-gradient(180deg, #fffdf9 0%, #fff7f1 100%);
-            border-color: var(--line-strong);
+        .site-header.scrolled {
+            box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(0, 0, 0, 0.06);
         }
-
-        .hero-grid,
-        .layout,
-        .info-grid {
-            display: grid;
-            gap: 18px;
-            align-items: start;
-        }
-
-        .hero-grid { grid-template-columns: 1.2fr .8fr; gap: 24px; }
-        .layout { grid-template-columns: 1.2fr .8fr; }
-        .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .stack,
-        .list,
-        .info-block,
-        .faq,
-        .best-card,
-        .hero-side { display: grid; gap: 12px; }
-        .stack { gap: 18px; }
-        .best-card { gap: 18px; }
-        .hero-side { gap: 14px; }
-
-        .eyebrow,
-        .badge,
-        .status-pill {
-            display: inline-flex;
+        .header-inner {
+            display: flex;
             align-items: center;
-            gap: 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .08em;
+            justify-content: space-between;
+            height: 60px;
+        }
+        .logo {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -.04em;
+            color: var(--ink);
+        }
+        .logo em { font-style: normal; color: var(--blue); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .badge-pill {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
             text-transform: uppercase;
-        }
-
-        .eyebrow {
-            padding: 8px 12px;
-            background: var(--accent-soft);
-            color: var(--accent);
-            border: 1px solid rgba(204, 90, 47, .16);
-        }
-
-        .badge {
-            padding: 8px 12px;
-            border: 1px solid var(--line);
-            background: var(--surface-soft);
+            padding: 5px 14px;
+            border-radius: 100000px;
+            background: var(--surface-2);
             color: var(--muted);
+            border: 1px solid var(--border);
             white-space: nowrap;
         }
 
-        .status-pill { padding: 10px 13px; border: 1px solid transparent; }
-        .is-verified { color: var(--safe); background: var(--safe-soft); border-color: rgba(29, 106, 72, .18); }
-        .is-fallback { color: var(--warn); background: var(--warn-soft); border-color: rgba(155, 106, 17, .18); }
-        .is-unconfirmed { color: var(--idle); background: var(--idle-soft); border-color: rgba(107, 99, 90, .18); }
-
+        /* ── HERO ────────────────────────────────────────────────── */
+        .hero {
+            padding: 48px 0 40px;
+            border-bottom: 1px solid var(--border-s);
+        }
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--blue);
+            margin-bottom: 16px;
+        }
+        .hero-eyebrow::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            flex-shrink: 0;
+        }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 56px;
+            align-items: start;
+        }
         h1 {
-            margin: 16px 0 10px;
-            font-size: clamp(40px, 6vw, 68px);
-            line-height: .95;
-            letter-spacing: -.05em;
-            max-width: 720px;
+            font-size: clamp(36px, 4vw, 52px);
+            font-weight: 400;
+            line-height: 1.05;
+            letter-spacing: -.04em;
+            color: var(--ink);
+            margin-bottom: 16px;
+        }
+        .hero-lead {
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--muted);
+            max-width: 520px;
+            margin-bottom: 24px;
+        }
+        .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .hero-aside { display: grid; gap: 10px; }
+        .aside-note {
+            padding: 16px 18px;
+            border-radius: 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .aside-note-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink-2);
+            margin-bottom: 4px;
+        }
+        .aside-note-body { font-size: 12px; color: var(--muted); line-height: 1.65; }
+        .status-bar {
+            margin-bottom: 16px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .status-bar.error {
+            background: var(--c-danger-bg);
+            border-color: var(--c-danger-border);
+            color: var(--c-danger);
         }
 
+        /* ── STATS BAND ──────────────────────────────────────────── */
+        .stats-band { border-bottom: 1px solid var(--border-s); }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+        }
+        .stat {
+            padding: 28px 24px;
+            border-right: 1px solid var(--border-s);
+        }
+        .stat:last-child { border-right: none; }
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: 400;
+            letter-spacing: -.05em;
+            line-height: 1.00;
+            color: var(--ink);
+            margin: 8px 0 6px;
+        }
+        .stat-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+        /* ── SECTION STRUCTURE ───────────────────────────────────── */
+        .section-wrap { padding: 56px 0; }
+
+        /* Scroll target offset — compensate for sticky header */
+        #best-proxy, #mobile-pack { scroll-margin-top: 60px; }
+
+        /* ── SECTION HEAD (static cards) ─────────────────────────── */
         .section-head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 18px;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .section-head h2 {
+            font-size: 28px;
+            font-weight: 400;
+            letter-spacing: -.04em;
+            line-height: 1.10;
+            color: var(--ink);
+        }
+        .section-head p { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.65; }
+
+        /* Proxy section head (dark, larger) */
+        .proxy-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .proxy-head h2 {
+            font-size: 36px;
+            font-weight: 400;
+            letter-spacing: -.04em;
+            line-height: 1.11;
+            color: var(--ink);
+        }
+        .proxy-head p { font-size: 16px; color: var(--muted); margin-top: 10px; max-width: 480px; }
+
+        /* ── KICKER ──────────────────────────────────────────────── */
+        .kicker {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--blue);
+            margin-bottom: 8px;
         }
 
-        .section-head h2 { margin: 0; font-size: 32px; letter-spacing: -.04em; }
-        .section-head p { margin: 8px 0 0; }
-        .lead,
-        .muted,
-        .status-note,
-        .state-copy,
-        .mini-copy,
-        .faq-item p { color: var(--muted); line-height: 1.65; }
-        .lead { margin: 0; max-width: 640px; font-size: 17px; }
-        .kicker,
-        .stat-label,
+        /* ── BADGE / PILL ────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 100000px;
+            background: var(--surface-2);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* ── STATUS PILLS ────────────────────────────────────────── */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 100000px;
+            border: 1px solid transparent;
+            flex-shrink: 0;
+        }
+        .status-pill::before {
+            content: '';
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+        .is-verified    { color: var(--c-ok);   background: var(--c-ok-bg);   border-color: var(--c-ok-border);   }
+        .is-fallback    { color: var(--c-warn);  background: var(--c-warn-bg); border-color: var(--c-warn-border); }
+        .is-unconfirmed { color: var(--c-idle);  background: var(--c-idle-bg); border-color: var(--c-idle-border); }
+
+        /* ── TYPOGRAPHY HELPERS ──────────────────────────────────── */
+        .lead, .muted, .status-note, .state-copy, .mini-copy { color: var(--muted); }
+        .status-note { font-size: 13px; line-height: 1.6; margin-top: 6px; }
+        .mini-copy   { font-size: 13px; line-height: 1.6; margin-top: 16px; }
+
+        /* ── PROXY ADDRESS ───────────────────────────────────────── */
+        .proxy-address {
+            font-size: clamp(28px, 3vw, 42px);
+            font-weight: 400;
+            letter-spacing: -.04em;
+            line-height: 1.05;
+            word-break: break-word;
+            color: var(--ink);
+            margin: 10px 0 4px;
+        }
+
+        /* ── FACTS GRID (JS-rendered) ────────────────────────────── */
+        .facts {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin: 16px 0;
+        }
+        .fact {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
         .meta-label {
-            font-size: 12px;
-            font-weight: 800;
+            font-size: 10px;
+            font-weight: 600;
             letter-spacing: .08em;
             text-transform: uppercase;
             color: var(--muted);
         }
-
-        .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-        .hero-note { padding: 18px; border-radius: 22px; background: var(--surface-soft); border: 1px solid var(--line); }
-        .hero-note strong { display: block; font-size: 17px; margin-bottom: 8px; }
-        .status-bar { margin-top: 18px; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-soft); font-size: 14px; }
-        .status-bar.error { background: var(--danger-soft); border-color: rgba(161, 61, 53, .18); color: var(--danger); }
-
-        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-        .stat { border-radius: 20px; padding: 18px; }
-        .stat-value { margin-top: 8px; font-size: 30px; font-weight: 800; letter-spacing: -.05em; }
-
-        .best-main {
-            display: grid;
-            gap: 14px;
-            padding: 22px;
-            border-radius: 24px;
-            background: var(--surface);
-            border: 1px solid var(--line);
+        .fact-value, .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink-2);
+            margin-top: 6px;
         }
 
-        .best-top,
+        /* ── BUTTONS ─────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            appearance: none;
+            border: 1px solid var(--border);
+            border-radius: 56px;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            background: var(--surface-2);
+            color: var(--ink);
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: background .14s, color .14s, border-color .14s, opacity .14s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .btn:hover:not(:disabled):not(.disabled) {
+            background: var(--blue-hover);
+            color: #ffffff;
+            border-color: var(--blue-hover);
+        }
+        .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+        .btn.primary {
+            background: var(--blue);
+            color: #ffffff;
+            border-color: var(--blue);
+        }
+        .btn.primary:hover:not(:disabled):not(.disabled) {
+            background: var(--blue-hover);
+            border-color: var(--blue-hover);
+        }
+        .btn.secondary { background: var(--surface-2); border-color: var(--border); color: var(--ink); }
+        .btn.safe {
+            background: var(--c-safe-bg);
+            color: var(--c-safe);
+            border-color: var(--c-safe-border);
+        }
+        .btn.safe:hover:not(:disabled):not(.disabled) {
+            background: var(--c-safe);
+            color: #ffffff;
+            border-color: var(--c-safe);
+        }
+        .btn.danger {
+            background: var(--c-danger-bg);
+            color: var(--c-danger);
+            border-color: var(--c-danger-border);
+        }
+        .btn.danger:hover:not(:disabled):not(.disabled) {
+            background: var(--c-danger);
+            color: #ffffff;
+            border-color: var(--c-danger);
+        }
+        .btn:disabled, .btn.disabled { opacity: .35; pointer-events: none; }
+
+        /* ── BUTTON GRIDS (JS-rendered) ─────────────────────────── */
+        .btn-row, .feedback-row, .pack-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        /* ── STATE BLOCK (JS-rendered) ───────────────────────────── */
+        .state {
+            display: grid;
+            gap: 10px;
+            justify-items: start;
+            padding: 28px;
+            border-radius: 16px;
+            border: 1px dashed var(--border);
+            background: var(--surface-2);
+        }
+        .state-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -.02em;
+            color: var(--ink);
+        }
+
+        /* ── BEST PROXY CARD (JS-rendered) ──────────────────────── */
+        .best-card { display: grid; gap: 16px; }
+        .best-main {
+            display: grid;
+            gap: 16px;
+            padding: 28px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+        .best-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        /* ── MINI CARDS (JS-rendered) ────────────────────────────── */
+        .list { display: grid; gap: 8px; }
+        .mini-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 18px;
+        }
         .mini-head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 10px;
         }
-
-        .proxy-address {
-            margin: 6px 0 0;
-            font-size: clamp(28px, 4vw, 44px);
-            line-height: 1;
-            letter-spacing: -.05em;
-            word-break: break-word;
-        }
-
-        .facts,
-        .meta-grid,
-        .btn-row,
-        .feedback-row,
-        .pack-actions {
-            display: grid;
-            gap: 12px;
-        }
-
-        .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        .meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-        .btn-row,
-        .feedback-row,
-        .pack-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
-        .fact,
-        .meta-cell,
-        .mini-card,
-        .info-item {
-            border: 1px solid var(--line);
-            background: var(--surface-soft);
-        }
-        .fact { padding: 14px; border-radius: 16px; }
-        .fact-value,
-        .meta-value { margin-top: 8px; font-size: 17px; font-weight: 800; }
-        .mini-card { padding: 16px; border-radius: 18px; }
-        .mini-title { margin: 0; font-size: 18px; letter-spacing: -.03em; word-break: break-word; }
-        .meta-cell { border-radius: 14px; padding: 10px; background: rgba(255, 255, 255, .55); }
-        .info-item { padding: 16px; border-radius: 18px; }
-        .info-item h3,
-        .faq-item h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: -.03em; }
-
-        .btn {
-            appearance: none;
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 15px 16px;
-            background: var(--surface);
+        .mini-title {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -.02em;
             color: var(--ink);
-            text-decoration: none;
-            text-align: center;
-            font-weight: 800;
-            cursor: pointer;
-            transition: .16s transform, .16s box-shadow, .16s border-color, .16s opacity;
+            word-break: break-word;
+            margin-bottom: 2px;
         }
 
-        .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(55, 34, 16, .08); border-color: rgba(204, 90, 47, .22); }
-        .btn.primary { background: linear-gradient(135deg, var(--accent), #df7348); color: #fff8f4; border-color: rgba(204, 90, 47, .28); }
-        .btn.secondary { background: var(--surface-soft); }
-        .btn.safe { background: var(--safe-soft); color: var(--safe); border-color: rgba(29, 106, 72, .18); }
-        .btn.danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(161, 61, 53, .18); }
-        .btn:disabled,
-        .btn.disabled { opacity: .48; pointer-events: none; transform: none; box-shadow: none; }
-
-        .state {
+        /* ── META GRID (JS-rendered) ─────────────────────────────── */
+        .meta-grid {
             display: grid;
-            gap: 12px;
-            justify-items: start;
-            padding: 20px;
-            border-radius: 20px;
-            border: 1px dashed var(--line-strong);
-            background: var(--surface-soft);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .meta-cell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
         }
 
-        .state-title { margin: 0; font-size: 20px; letter-spacing: -.03em; }
-        .faq-item { border-radius: 20px; padding: 18px; }
+        /* ── CARDS (static) ──────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+        }
+
+        /* ── INFO BLOCK ──────────────────────────────────────────── */
+        .info-block { display: grid; gap: 8px; margin-top: 20px; }
+        .info-item {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+        }
+        .info-item h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -.02em;
+            margin-bottom: 6px;
+        }
+        .info-item p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+        /* ── FAQ ─────────────────────────────────────────────────── */
+        .faq-head { margin-bottom: 40px; }
+        .faq-head .eyebrow-text {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--blue);
+            margin-bottom: 16px;
+        }
+        .faq-head h2 {
+            font-size: clamp(36px, 4vw, 52px);
+            font-weight: 400;
+            letter-spacing: -.05em;
+            line-height: 1.00;
+            color: var(--ink);
+        }
+        .faq { display: grid; gap: 8px; }
+        .faq-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 22px 24px;
+        }
+        .faq-item h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -.02em;
+            margin-bottom: 8px;
+        }
+        .faq-item p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+        /* ── SKELETON LOADING ───────────────────────────────────── */
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skel {
+            background: linear-gradient(
+                90deg,
+                var(--surface-2) 25%,
+                var(--border)    50%,
+                var(--surface-2) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border-radius: 6px;
+            display: block;
+        }
+        /* inline skeleton for stat-value — replaces the "—" */
+        .skel-stat {
+            display: inline-block;
+            height: 30px;
+            width: 64px;
+            vertical-align: middle;
+            border-radius: 6px;
+        }
+
+        /* ── TOAST ───────────────────────────────────────────────── */
         .toast {
             position: fixed;
             left: 50%;
-            bottom: 18px;
-            transform: translateX(-50%) translateY(18px);
-            background: rgba(31, 27, 22, .94);
-            color: #fffaf5;
-            padding: 14px 18px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, .08);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, .18);
+            bottom: 28px;
+            transform: translateX(-50%) translateY(20px);
+            background: #0a0b0d;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 13px 22px;
+            border-radius: 100000px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             opacity: 0;
             pointer-events: none;
-            transition: .18s opacity, .18s transform;
-            z-index: 30;
+            transition: opacity .18s, transform .18s;
+            z-index: 200;
+            white-space: nowrap;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        @media (max-width: 1024px) {
-            .hero-grid,
-            .layout,
-            .info-grid { grid-template-columns: 1fr; }
+        /* ── FOOTER ──────────────────────────────────────────────── */
+        .site-footer {
+            background: #0a0b0d;
+            padding: 48px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .footer-logo {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -.04em;
+            color: #ffffff;
+        }
+        .footer-logo em { font-style: normal; color: var(--blue); }
+        .footer-copy { font-size: 13px; color: rgba(255, 255, 255, 0.35); }
+
+        /* ── LAYOUT HELPERS ──────────────────────────────────────── */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        .two-col-info { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+
+        /* Full-width button — primary CTA in proxy card */
+        .btn-block { width: 100%; }
+
+        /* Info section column headings (replaces inline styles) */
+        .info-col-heading {
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -.04em;
+            line-height: 1.10;
+            color: var(--ink);
+            margin-bottom: 10px;
+        }
+        .info-col-lead {
+            font-size: 15px;
+            color: var(--muted);
+            line-height: 1.65;
+            margin-bottom: 0;
         }
 
-        @media (max-width: 780px) {
-            .stats,
-            .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        /* ── RESPONSIVE ──────────────────────────────────────────── */
+        @media (max-width: 896px) {
+            .hero-grid, .two-col, .two-col-info { grid-template-columns: 1fr; }
+            .hero-grid { gap: 32px; }
+            /* hide aside notes on tablet/mobile — secondary content */
+            .hero-aside { display: none; }
         }
-
+        @media (max-width: 768px) {
+            /* 2×2 stats grid with clean border separators */
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .stat { border-right: none; border-bottom: 1px solid var(--border-s); }
+            .stat:nth-child(odd) { border-right: 1px solid var(--border-s); }
+            .stat:nth-child(3), .stat:nth-child(4) { border-bottom: none; }
+        }
         @media (max-width: 640px) {
-            .page { width: min(calc(100% - 12px), var(--content)); margin: 6px auto 18px; }
-            .hero,
-            .card { padding: 18px; border-radius: 24px; }
-            h1 { font-size: clamp(34px, 12vw, 48px); }
-            .section-head,
-            .best-top,
-            .mini-head { flex-direction: column; align-items: flex-start; }
-            .stats,
-            .facts,
-            .btn-row,
-            .feedback-row,
-            .pack-actions,
-            .meta-grid { grid-template-columns: 1fr; }
+            .container { width: calc(100% - 32px); }
+            h1 { font-size: clamp(30px, 9vw, 40px); }
+            .hero { padding: 28px 0 24px; }
+            .section-wrap { padding: 40px 0; }
+            .proxy-head h2, .section-head h2 { font-size: 22px; }
+            .info-col-heading { font-size: 22px; }
+            .proxy-head, .section-head, .best-top, .mini-head { flex-direction: column; align-items: flex-start; }
+            .facts { grid-template-columns: repeat(2, 1fr); }
+            .btn-row, .feedback-row, .pack-actions, .meta-grid { grid-template-columns: 1fr; }
+            .footer-inner { flex-direction: column; text-align: center; gap: 8px; }
         }
     </style>
 </head>
 <body>
-<main class="page">
-    <div class="shell">
-        <section class="hero">
-            <div class="eyebrow">MTProto proxy catalog</div>
-            <div class="hero-grid">
-                <div>
-                    <h1>Открой Telegram через лучший вариант прямо сейчас</h1>
-                    <p class="lead">Сервис показывает один основной прокси, даёт запасные варианты и готовый набор для телефона. Сначала нажми главную кнопку. Если не сработает, переходи к следующему.</p>
-                    <div class="hero-actions">
-                        <a class="btn primary" href="#bestProxy">Открыть лучший прокси</a>
-                        <a class="btn secondary" href="#mobilePack">Набор для телефона</a>
-                    </div>
-                </div>
-                <aside class="hero-side">
-                    <div class="hero-note">
-                        <strong>Сценарий на 10 секунд</strong>
-                        <div class="muted">1. Открой лучший прокси. 2. Если не сработал, нажми следующий. 3. На телефоне используй готовый набор ссылок.</div>
-                    </div>
-                    <div class="hero-note">
-                        <strong>Public beta</strong>
-                        <div class="muted">Результаты обновляются по API и проверкам. Метрики ниже нужны для доверия, но не отвлекают от основного действия.</div>
-                    </div>
-                </aside>
+
+<!-- ══════════════════════════════════════════════
+     HEADER — sticky white/glass
+══════════════════════════════════════════════ -->
+<header class="site-header">
+    <div class="container">
+        <div class="header-inner">
+            <div class="logo">Mt<em>Proxy</em></div>
+            <div class="header-right">
+                <span class="badge-pill">Public beta</span>
             </div>
-            <div id="status" class="status-bar">Загружаю каталог...</div>
-        </section>
-
-        <section class="stats" aria-label="Статистика каталога">
-            <article class="stat"><div class="stat-label">В каталоге сейчас</div><div id="heroCount" class="stat-value">0</div><div class="muted">Сколько вариантов доступно для быстрого выбора.</div></article>
-            <article class="stat"><div class="stat-label">Проверены Telegram</div><div id="verifiedCount" class="stat-value">0</div><div class="muted">Прошли полную проверку и приоритетны в выдаче.</div></article>
-            <article class="stat"><div class="stat-label">Живые сейчас</div><div id="aliveCount" class="stat-value">0</div><div class="muted">Отвечали на последней проверке.</div></article>
-            <article class="stat"><div class="stat-label">Проверок за 24 часа</div><div id="checksCount" class="stat-value">0</div><div class="muted"><span id="deepRate">0%</span> из deep-check завершились успешно.</div></article>
-        </section>
-
-        <section class="layout">
-            <div class="stack">
-                <section id="bestProxy" class="card hero-card">
-                    <div class="section-head">
-                        <div><div class="kicker">Главное действие</div><h2>Лучший прокси сейчас</h2><p class="muted">Это центральная карточка. Открывай её первой, не разбирая длинный список вручную.</p></div>
-                        <div id="desktopPos" class="badge">Вариант 0 / 0</div>
-                    </div>
-                    <div id="desktopPanel" class="state"><h3 class="state-title">Подбираю лучший вариант</h3><div class="state-copy">Проверяю доступные прокси и собираю карточку для быстрого старта.</div></div>
-                </section>
-            </div>
-
-            <div class="stack">
-                <section id="mobilePack" class="card">
-                    <div class="section-head">
-                        <div><div class="kicker">Для телефона</div><h2>Готовый набор ссылок</h2><p class="muted">Если удобнее сразу вставить несколько вариантов в мобильный Telegram, используй этот блок.</p></div>
-                        <div id="mobileSize" class="badge">Набор 0</div>
-                    </div>
-                    <div id="mobilePanel" class="state"><h3 class="state-title">Собираю набор</h3><div class="state-copy">Здесь появятся несколько ссылок в порядке от более надёжных к запасным.</div></div>
-                </section>
-
-                <section class="card">
-                    <div class="section-head">
-                        <div><div class="kicker">Запасные варианты</div><h2>Что попробовать дальше</h2><p class="muted">Короткий список на случай, если первый вариант не подошёл именно в твоей сети.</p></div>
-                        <div class="badge">Fallback list</div>
-                    </div>
-                    <div id="queuePanel" class="state"><h3 class="state-title">Собираю запасной список</h3><div class="state-copy">Здесь появятся следующие кандидаты без лишнего визуального шума.</div></div>
-                </section>
-            </div>
-        </section>
-
-        <section class="info-grid">
-            <section class="card">
-                <div class="section-head">
-                    <div><div class="kicker">Как читать статусы</div><h2>Понятные сигналы</h2><p class="muted">Статусы объясняют, с чего начинать и насколько вариант выглядит надёжным прямо сейчас.</p></div>
-                    <div class="badge">Trust layer</div>
-                </div>
-                <div class="info-block">
-                    <article class="info-item"><h3>Проверен Telegram</h3><p class="muted">Лучший первый выбор. Прокси прошёл полную проверку и должен быть в приоритете.</p></article>
-                    <article class="info-item"><h3>Запасной вариант</h3><p class="muted">Прокси отвечает и может сработать, но это уже fallback, а не главный кандидат.</p></article>
-                    <article class="info-item"><h3>Нет свежего подтверждения</h3><p class="muted">Данных недостаточно для уверенного старта. Используй, только если основные варианты не подошли.</p></article>
-                </div>
-            </section>
-            <section class="card">
-                <div class="section-head">
-                    <div><div class="kicker">Метрики доверия</div><h2>Почему сервису можно верить</h2><p class="muted">Технические детали оставлены вторичными, но доступны, если нужно понять качество выдачи.</p></div>
-                    <div class="badge">Metrics</div>
-                </div>
-                <div class="info-block">
-                    <article class="info-item"><h3>Score</h3><p class="muted">Итоговая оценка на базе проверок, истории успехов и обратной связи. Это вспомогательный сигнал, а не главный CTA.</p></article>
-                    <article class="info-item"><h3>Задержка</h3><p class="muted">Показывает, насколько быстро отвечал прокси на последней проверке. Низкая задержка приятнее, но не гарантирует успех у всех.</p></article>
-                    <article class="info-item"><h3>Последняя проверка</h3><p class="muted">Чем свежее отметка, тем актуальнее данные. Если вариант старый, лучше начать с верхней карточки или набора для телефона.</p></article>
-                </div>
-            </section>
-        </section>
-
-        <section class="card">
-            <div class="section-head">
-                <div><div class="kicker">FAQ</div><h2>Короткие ответы</h2><p class="muted">Без технического перегруза. Только то, что помогает быстрее подключиться.</p></div>
-                <div class="badge">4 answers</div>
-            </div>
-            <div class="faq">
-                <article class="faq-item"><h3>Что делать, если первый вариант не сработал?</h3><p>Нажми кнопку перехода к следующему прокси или открой блок с запасными вариантами. На телефоне проще сразу скопировать набор ссылок и попробовать их по очереди.</p></article>
-                <article class="faq-item"><h3>Почему прокси может работать у одного пользователя и не работать у другого?</h3><p>Результат зависит от провайдера, региона, типа сети и локальных ограничений. Поэтому сервис показывает не один адрес навсегда, а лучший текущий вариант и запасной список.</p></article>
-                <article class="faq-item"><h3>Что значит «проверен»?</h3><p>Это значит, что прокси недавно прошёл полную Telegram-проверку и сейчас выглядит самым надёжным кандидатом для первого запуска.</p></article>
-                <article class="faq-item"><h3>Как использовать набор для телефона?</h3><p>Скопируй tg:// или web-набор из блока для телефона и вставь ссылки в мобильный Telegram. Набор уже отсортирован по приоритету: сначала более сильные варианты, потом запасные.</p></article>
-            </div>
-        </section>
+        </div>
     </div>
-</main>
+</header>
+
+<!-- ══════════════════════════════════════════════
+     HERO — white, display typography
+══════════════════════════════════════════════ -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-eyebrow">MTProto Proxy Catalog</div>
+        <div class="hero-grid">
+            <div>
+                <h1>Открой Telegram через лучший прокси прямо сейчас</h1>
+                <p class="hero-lead">Сервис показывает один основной прокси, даёт запасные варианты и готовый набор для телефона. Сначала нажми главную кнопку. Если не сработает, переходи к следующему.</p>
+                <div id="status" class="status-bar">Загружаю каталог...</div>
+                <div class="hero-actions">
+                    <a class="btn primary" href="#best-proxy">Открыть лучший прокси</a>
+                    <a class="btn secondary" href="#mobile-pack">Набор для телефона</a>
+                </div>
+            </div>
+            <aside class="hero-aside">
+                <div class="aside-note">
+                    <div class="aside-note-title">Сценарий на 10 секунд</div>
+                    <div class="aside-note-body">1. Открой лучший прокси. 2. Если не сработал, нажми следующий. 3. На телефоне используй готовый набор ссылок.</div>
+                </div>
+                <div class="aside-note">
+                    <div class="aside-note-title">Как работает сервис</div>
+                    <div class="aside-note-body">Результаты обновляются по API и проверкам. Метрики нужны для доверия, но не отвлекают от основного действия.</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     STATS BAND — white, divided cells
+══════════════════════════════════════════════ -->
+<section class="stats-band" aria-label="Статистика каталога">
+    <div class="container">
+        <div class="stats">
+            <article class="stat">
+                <div class="stat-label">В каталоге сейчас</div>
+                <div id="heroCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
+                <div class="stat-desc">Вариантов доступно для быстрого выбора.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Проверены Telegram</div>
+                <div id="verifiedCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
+                <div class="stat-desc">Прошли полную проверку, приоритет выдачи.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Живые сейчас</div>
+                <div id="aliveCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
+                <div class="stat-desc">Отвечали на последней проверке.</div>
+            </article>
+            <article class="stat">
+                <div class="stat-label">Проверок за 24 часа</div>
+                <div id="checksCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
+                <div class="stat-desc"><span id="deepRate">—</span> deep-check завершились успешно.</div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     BEST PROXY — DARK section
+══════════════════════════════════════════════ -->
+<section id="best-proxy" class="dark section-wrap">
+    <div class="container">
+        <div class="proxy-head">
+            <div>
+                <div class="kicker">Главное действие</div>
+                <h2>Лучший прокси сейчас</h2>
+                <p>Центральная карточка. Открывай её первой — не разбирай длинный список вручную.</p>
+            </div>
+            <div id="desktopPos" class="badge">Вариант 0 / 0</div>
+        </div>
+        <div id="desktopPanel" aria-live="polite">
+            <article class="best-main">
+                <div class="best-top">
+                    <div style="flex:1;min-width:0">
+                        <span class="skel" style="height:11px;width:32%;border-radius:4px;margin-bottom:14px"></span>
+                        <span class="skel" style="height:36px;width:58%;border-radius:6px;margin-bottom:12px"></span>
+                        <span class="skel" style="height:12px;width:82%;border-radius:4px"></span>
+                        <span class="skel" style="height:12px;width:56%;border-radius:4px;margin-top:6px"></span>
+                    </div>
+                </div>
+                <span class="skel" style="height:56px;border-radius:12px"></span>
+                <span class="skel" style="height:46px;border-radius:56px"></span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <span class="skel" style="height:46px;border-radius:56px"></span>
+                    <span class="skel" style="height:46px;border-radius:56px"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <span class="skel" style="height:46px;border-radius:56px"></span>
+                    <span class="skel" style="height:46px;border-radius:56px"></span>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     MOBILE PACK + FALLBACK — white section
+══════════════════════════════════════════════ -->
+<section class="section-wrap" style="border-bottom: 1px solid var(--border-s);">
+    <div class="container">
+        <div class="two-col">
+
+            <!-- Mobile pack -->
+            <div id="mobile-pack">
+                <div class="section-head">
+                    <div>
+                        <div class="kicker">Для телефона</div>
+                        <h2>Готовый набор ссылок</h2>
+                        <p>Вставь несколько вариантов в мобильный Telegram сразу и пробуй по порядку.</p>
+                    </div>
+                    <div id="mobileSize" class="badge">Набор 0</div>
+                </div>
+                <div id="mobilePanel" aria-live="polite">
+                    <div class="list">
+                        <div class="mini-card"><span class="skel" style="height:14px;width:62%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:80%;border-radius:4px"></span></div>
+                        <div class="mini-card"><span class="skel" style="height:14px;width:52%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:72%;border-radius:4px"></span></div>
+                        <div class="mini-card"><span class="skel" style="height:14px;width:57%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:68%;border-radius:4px"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fallback queue -->
+            <div>
+                <div class="section-head">
+                    <div>
+                        <div class="kicker">Запасные варианты</div>
+                        <h2>Что попробовать дальше</h2>
+                        <p>Список на случай, если первый вариант не подошёл именно в твоей сети.</p>
+                    </div>
+                    <div class="badge">Fallback list</div>
+                </div>
+                <div id="queuePanel" aria-live="polite">
+                    <div class="list">
+                        <div class="mini-card"><span class="skel" style="height:14px;width:68%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:55%;border-radius:4px"></span></div>
+                        <div class="mini-card"><span class="skel" style="height:14px;width:48%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:64%;border-radius:4px"></span></div>
+                        <div class="mini-card"><span class="skel" style="height:14px;width:58%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:74%;border-radius:4px"></span></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     FAQ — white section (before INFO — most urgent content)
+══════════════════════════════════════════════ -->
+<section class="section-wrap" style="border-bottom: 1px solid var(--border-s);">
+    <div class="container">
+        <div class="faq-head">
+            <div class="eyebrow-text">FAQ</div>
+            <h2>Короткие ответы</h2>
+        </div>
+        <div class="faq">
+            <article class="faq-item">
+                <h3>Что делать, если первый вариант не сработал?</h3>
+                <p>Нажми кнопку перехода к следующему прокси или открой блок с запасными вариантами. На телефоне проще сразу скопировать набор ссылок и попробовать их по очереди.</p>
+            </article>
+            <article class="faq-item">
+                <h3>Почему прокси может работать у одного пользователя и не работать у другого?</h3>
+                <p>Результат зависит от провайдера, региона, типа сети и локальных ограничений. Поэтому сервис показывает не один адрес навсегда, а лучший текущий вариант и запасной список.</p>
+            </article>
+            <article class="faq-item">
+                <h3>Что значит «проверен»?</h3>
+                <p>Прокси недавно прошёл полную Telegram-проверку и сейчас выглядит самым надёжным кандидатом для первого запуска.</p>
+            </article>
+            <article class="faq-item">
+                <h3>Как использовать набор для телефона?</h3>
+                <p>Скопируй tg:// или web-набор из блока для телефона и вставь ссылки в мобильный Telegram. Набор уже отсортирован по приоритету: сначала более сильные варианты, потом запасные.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     INFO — DARK section
+══════════════════════════════════════════════ -->
+<section class="dark section-wrap">
+    <div class="container">
+        <div class="two-col-info">
+
+            <div>
+                <div class="kicker">Как читать статусы</div>
+                <h2 class="info-col-heading">Понятные сигналы</h2>
+                <p class="info-col-lead">Статусы объясняют, с чего начинать и насколько вариант выглядит надёжным прямо сейчас.</p>
+                <div class="info-block">
+                    <article class="info-item">
+                        <h3>Проверен Telegram</h3>
+                        <p>Лучший первый выбор. Прокси прошёл полную проверку и должен быть в приоритете.</p>
+                    </article>
+                    <article class="info-item">
+                        <h3>Запасной вариант</h3>
+                        <p>Прокси отвечает и может сработать, но это fallback, а не главный кандидат.</p>
+                    </article>
+                    <article class="info-item">
+                        <h3>Нет свежего подтверждения</h3>
+                        <p>Данных недостаточно для уверенного старта. Используй только если основные не подошли.</p>
+                    </article>
+                </div>
+            </div>
+
+            <div>
+                <div class="kicker">Метрики доверия</div>
+                <h2 class="info-col-heading">Почему сервису можно верить</h2>
+                <p class="info-col-lead">Технические детали вторичны, но доступны для понимания качества выдачи.</p>
+                <div class="info-block">
+                    <article class="info-item">
+                        <h3>Score</h3>
+                        <p>Итоговая оценка на базе проверок, истории успехов и отзывов. Вспомогательный сигнал, не главный призыв к действию.</p>
+                    </article>
+                    <article class="info-item">
+                        <h3>Задержка</h3>
+                        <p>Насколько быстро отвечал прокси на последней проверке. Низкая задержка приятнее, но не гарантирует успех у всех.</p>
+                    </article>
+                    <article class="info-item">
+                        <h3>Последняя проверка</h3>
+                        <p>Чем свежее отметка, тем актуальнее данные. Если вариант старый — начни с верхней карточки.</p>
+                    </article>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     FOOTER — dark
+══════════════════════════════════════════════ -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-inner">
+            <div class="footer-logo">Mt<em>Proxy</em></div>
+            <div class="footer-copy">Каталог MTProto прокси для Telegram · Данные обновляются автоматически</div>
+        </div>
+    </div>
+</footer>
+
 <div id="toast" class="toast"></div>
 <script>
 (() => {
@@ -757,17 +1313,17 @@
                         <div class="status-pill ${view.className}">${escapeHtml(view.label)}</div>
                     </div>
                     ${renderFacts(proxy)}
+                    <a class="btn primary btn-block ${proxy.telegramDeepLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramDeepLink || "#")}">Открыть в Telegram</a>
                     <div class="btn-row">
-                        <a class="btn primary ${proxy.telegramDeepLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramDeepLink || "#")}">Открыть в Telegram</a>
                         <a class="btn secondary ${proxy.telegramWebLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer">Открыть как ссылку</a>
                         <button class="btn secondary" id="copyCurrentBtn" type="button" ${hasLink ? "" : "disabled"}>Скопировать ссылку</button>
-                        <button class="btn" id="nextBtn" type="button" ${hasNextProxy ? "" : "disabled"}>${hasNextProxy ? "Попробовать следующий" : "Это последний вариант"}</button>
                     </div>
+                    <button class="btn btn-block" id="nextBtn" type="button" ${hasNextProxy ? "" : "disabled"}>${hasNextProxy ? "Попробовать следующий" : "Это последний вариант"}</button>
                     <div class="feedback-row">
                         <button class="btn safe" id="desktopOk" type="button" ${feedbackLocked ? "disabled" : ""}>Сработало</button>
                         <button class="btn danger" id="desktopFail" type="button" ${feedbackLocked ? "disabled" : ""}>Не сработало</button>
                     </div>
-                    <div class="mini-copy">Если этот вариант не подошёл, не возвращайся к ручному поиску. Просто открой следующий прокси или возьми запасной список справа.</div>
+                    <div class="mini-copy">Если этот вариант не подошёл, не возвращайся к ручному поиску. Просто открой следующий прокси или возьми запасной список ниже.</div>
                 </article>
             </div>
         `;
@@ -998,6 +1554,28 @@
             setStatus(error?.message || "Не удалось загрузить данные. Проверь доступность backend API.", true);
             console.error(error);
         }
+    }
+
+    // tg:// deep-link fallback — if Telegram isn't installed the browser does nothing.
+    // After a click on a tg:// link, if the window stays focused for 1.4s (app didn't open),
+    // show a hint pointing to the web-link button.
+    document.addEventListener("click", (e) => {
+        const link = e.target.closest("a[href^='tg://']");
+        if (!link || link.classList.contains("disabled")) return;
+
+        const timer = setTimeout(() => {
+            showToast("Telegram не открылся — попробуй «Открыть как ссылку» в браузере.");
+        }, 1400);
+
+        window.addEventListener("blur", () => clearTimeout(timer), { once: true });
+    });
+
+    // Header scroll shadow
+    const siteHeader = document.querySelector(".site-header");
+    if (siteHeader) {
+        window.addEventListener("scroll", () => {
+            siteHeader.classList.toggle("scrolled", window.scrollY > 4);
+        }, { passive: true });
     }
 
     loadCatalog();
