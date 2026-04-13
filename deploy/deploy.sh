@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /opt/streamcut
+cd /opt/mtproxy
 
 git fetch origin
 git reset --hard origin/main
 
-docker compose -f compose.streamcut.yml up -d --build
+docker compose -f compose.mtproxy.yml up -d --build
 
 for i in {1..20}; do
   if curl -fsS http://localhost:8080/health > /dev/null; then
@@ -17,5 +17,5 @@ for i in {1..20}; do
 done
 
 echo "Backend did not become healthy"
-docker compose -f compose.streamcut.yml logs --tail=200 backend
+docker compose -f compose.mtproxy.yml logs --tail=200 mtproxy-backend
 exit 1
