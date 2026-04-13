@@ -965,7 +965,8 @@
         endpoints: {
             best: "/api/v1/proxies/best",
             stats: "/api/v1/proxies/stats",
-            feedbackBase: "/api/v1/proxies"
+            feedbackBase: "/api/v1/proxies",
+            frontendConfig: "/api/v1/frontend-config"
         },
         limits: {
             mobilePack: 6,
@@ -1008,6 +1009,14 @@
         submittedFeedback: new Set()
     };
 
+    const analyticsState = {
+        ready: false,
+        pageViewTracked: false,
+        queuedEvents: [],
+        lastBestProxyKey: null,
+        loadSequence: 0
+    };
+
     let toastTimer = null;
 
     // Status mapping
@@ -1043,6 +1052,126 @@
                 failedDeepChecks: 0
             }
         };
+    }
+
+    function queueAnalyticsEvent(eventName, properties = {}) {
+        if (analyticsState.ready && window.posthog?.capture) {
+            try {
+                window.posthog.capture(eventName, properties);
+            } catch {}
+            return;
+        }
+
+        analyticsState.queuedEvents.push([eventName, properties]);
+        if (analyticsState.queuedEvents.length > 20) {
+            analyticsState.queuedEvents.shift();
+        }
+    }
+
+    function flushAnalyticsQueue() {
+        if (!analyticsState.ready || !window.posthog?.capture || !analyticsState.queuedEvents.length) {
+            return;
+        }
+
+        const queued = analyticsState.queuedEvents.splice(0, analyticsState.queuedEvents.length);
+        queued.forEach(([eventName, properties]) => {
+            try {
+                window.posthog.capture(eventName, properties);
+            } catch {}
+        });
+    }
+
+    function buildPostHogAssetUrl(apiHost) {
+        const normalizedHost = String(apiHost || "").trim().replace(/\/+$/, "");
+        if (!normalizedHost) return null;
+        return `${normalizedHost.replace(".i.posthog.com", "-assets.i.posthog.com")}/static/array.js`;
+    }
+
+    async function loadScript(src) {
+        if (!src) return;
+
+        const existing = document.querySelector(`script[data-src="${src}"]`);
+        if (existing) {
+            if (existing.dataset.loaded === "true") return;
+            await new Promise((resolve, reject) => {
+                existing.addEventListener("load", resolve, { once: true });
+                existing.addEventListener("error", reject, { once: true });
+            });
+            return;
+        }
+
+        await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.async = true;
+            script.src = src;
+            script.dataset.src = src;
+            script.addEventListener("load", () => {
+                script.dataset.loaded = "true";
+                resolve();
+            }, { once: true });
+            script.addEventListener("error", reject, { once: true });
+            document.head.appendChild(script);
+        });
+    }
+
+    function trackPageView() {
+        if (analyticsState.pageViewTracked) return;
+        analyticsState.pageViewTracked = true;
+        queueAnalyticsEvent("page_view", {
+            page_path: window.location.pathname,
+            page_title: document.title,
+            source_section: "landing_page"
+        });
+    }
+
+    async function initAnalytics() {
+        try {
+            const config = await fetchJson(CONFIG.endpoints.frontendConfig);
+            if (!config?.posthogEnabled || !config?.posthogApiKey) {
+                return;
+            }
+
+            const assetUrl = buildPostHogAssetUrl(config.posthogHost);
+            await loadScript(assetUrl);
+            if (!window.posthog?.init || !window.posthog?.capture) {
+                return;
+            }
+
+            window.posthog.init(config.posthogApiKey, {
+                api_host: config.posthogHost,
+                autocapture: false
+            });
+
+            analyticsState.ready = true;
+            trackPageView();
+            flushAnalyticsQueue();
+        } catch (error) {
+            console.warn("PostHog init skipped", error);
+        }
+    }
+
+    function nextLoadId() {
+        analyticsState.loadSequence += 1;
+        return analyticsState.loadSequence;
+    }
+
+    function trackBestProxyShown(proxy) {
+        if (!proxy) return;
+
+        const key = `${appState.currentDesktopIndex}:${proxy.id}`;
+        if (analyticsState.lastBestProxyKey === key) {
+            return;
+        }
+
+        analyticsState.lastBestProxyKey = key;
+        queueAnalyticsEvent("best_proxy_shown", {
+            proxy_id: proxy.id,
+            platform: "desktop",
+            source_section: "desktop_hero",
+            position: appState.currentDesktopIndex + 1,
+            verification_status: proxy.verificationStatus,
+            proxy_status: proxy.status
+        });
     }
 
     function escapeHtml(value) {
@@ -1314,9 +1443,9 @@
                         <div class="status-pill ${view.className}">${escapeHtml(view.label)}</div>
                     </div>
                     ${renderFacts(proxy)}
-                    <a class="btn primary btn-block ${proxy.telegramDeepLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramDeepLink || "#")}">Открыть в Telegram</a>
+                    <a class="btn primary btn-block ${proxy.telegramDeepLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramDeepLink || "#")}" data-analytics-event="open-telegram-link" data-link-type="tg_deep_link" data-platform="desktop" data-source-section="desktop_hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть в Telegram</a>
                     <div class="btn-row">
-                        <a class="btn secondary ${proxy.telegramWebLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer">Открыть как ссылку</a>
+                        <a class="btn secondary ${proxy.telegramWebLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer" data-analytics-event="open-telegram-link" data-link-type="web_link" data-platform="desktop" data-source-section="desktop_hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть как ссылку</a>
                         <button class="btn secondary" id="copyCurrentBtn" type="button" ${hasLink ? "" : "disabled"}>Скопировать ссылку</button>
                     </div>
                     <button class="btn btn-block" id="nextBtn" type="button" ${hasNextProxy ? "" : "disabled"}>${hasNextProxy ? "Попробовать следующий" : "Это последний вариант"}</button>
@@ -1338,6 +1467,7 @@
             successMessage: "Отзыв сохранён: основной вариант сработал",
             failureMessage: "Отзыв сохранён: основной вариант не сработал"
         });
+        trackBestProxyShown(proxy);
     }
 
     function renderMobilePack() {
@@ -1444,6 +1574,12 @@
             copyButton.addEventListener("click", async () => {
                 try {
                     await copyToClipboard(proxy.telegramDeepLink || proxy.telegramWebLink);
+                    queueAnalyticsEvent("copy_proxy", {
+                        proxy_id: proxy.id,
+                        platform: "desktop",
+                        source_section: "desktop_hero",
+                        link_type: proxy.telegramDeepLink ? "tg_deep_link" : "web_link"
+                    });
                     showToast("Ссылка скопирована");
                 } catch {
                     showToast("Не удалось скопировать ссылку");
@@ -1469,6 +1605,13 @@
             copyPackButton.addEventListener("click", async () => {
                 try {
                     await copyToClipboard(buildMobilePackLinks(proxies, "telegramDeepLink"));
+                    queueAnalyticsEvent("copy_proxy", {
+                        platform: "mobile",
+                        source_section: "mobile_pack",
+                        link_type: "tg_deep_link_pack",
+                        pack_size: proxies.length,
+                        proxy_ids: proxies.map((proxy) => proxy.id)
+                    });
                     showToast("tg:// набор скопирован");
                 } catch {
                     showToast("Не удалось скопировать tg:// набор");
@@ -1480,6 +1623,13 @@
             copyWebPackButton.addEventListener("click", async () => {
                 try {
                     await copyToClipboard(buildMobilePackLinks(proxies, "telegramWebLink"));
+                    queueAnalyticsEvent("copy_proxy", {
+                        platform: "mobile",
+                        source_section: "mobile_pack",
+                        link_type: "web_link_pack",
+                        pack_size: proxies.length,
+                        proxy_ids: proxies.map((proxy) => proxy.id)
+                    });
                     showToast("web-набор скопирован");
                 } catch {
                     showToast("Не удалось скопировать web-набор");
@@ -1500,6 +1650,12 @@
                 buttons.forEach((button) => { button.disabled = true; });
                 await sendFeedback(proxy.id, result, platform);
                 markFeedbackSubmitted(proxy.id, platform);
+                queueAnalyticsEvent("feedback_sent", {
+                    proxy_id: proxy.id,
+                    platform: String(platform || "").toLowerCase(),
+                    result: String(result || "").toLowerCase(),
+                    source_section: platform === CONFIG.feedbackPlatforms.mobile ? "mobile_pack" : "desktop_hero"
+                });
                 showToast(result === CONFIG.feedbackResults.worked ? successMessage : failureMessage);
             } catch (error) {
                 if (!feedbackAlreadySent) buttons.forEach((button) => { button.disabled = false; });
@@ -1515,7 +1671,12 @@
     async function loadCatalog() {
         appState.isLoading = true;
         appState.error = null;
+        const loadId = nextLoadId();
         setStatus("Загружаю лучший прокси, мобильный набор и запасные варианты...");
+        queueAnalyticsEvent("import_started", {
+            source_section: "landing_page",
+            load_id: loadId
+        });
 
         try {
             const [bestData, statsData] = await Promise.all([
@@ -1530,6 +1691,14 @@
             appState.currentDesktopIndex = 0;
             appState.mobilePack = buildMobilePack(appState.proxies);
             appState.isLoading = false;
+            queueAnalyticsEvent("import_finished", {
+                source_section: "landing_page",
+                load_id: loadId,
+                outcome: "success",
+                proxy_count: appState.proxies.length,
+                alive_count: appState.stats.aliveCount,
+                verified_count: appState.stats.verifiedCount
+            });
 
             if (!appState.proxies.length) {
                 renderEmptyState();
@@ -1551,6 +1720,12 @@
         } catch (error) {
             appState.isLoading = false;
             appState.error = error;
+            queueAnalyticsEvent("import_finished", {
+                source_section: "landing_page",
+                load_id: loadId,
+                outcome: "error",
+                error_message: error?.message || "unknown_error"
+            });
             renderErrorState("Страница не получила данные от backend API.");
             setStatus(error?.message || "Не удалось загрузить данные. Проверь доступность backend API.", true);
             console.error(error);
@@ -1561,6 +1736,16 @@
     // After a click on a tg:// link, if the window stays focused for 1.4s (app didn't open),
     // show a hint pointing to the web-link button.
     document.addEventListener("click", (e) => {
+        const analyticsLink = e.target.closest("a[data-analytics-event='open-telegram-link']");
+        if (analyticsLink && !analyticsLink.classList.contains("disabled")) {
+            queueAnalyticsEvent("open_telegram_link", {
+                proxy_id: Number(analyticsLink.dataset.proxyId || 0) || null,
+                platform: analyticsLink.dataset.platform || "unknown",
+                source_section: analyticsLink.dataset.sourceSection || "unknown",
+                link_type: analyticsLink.dataset.linkType || "unknown"
+            });
+        }
+
         const link = e.target.closest("a[href^='tg://']");
         if (!link || link.classList.contains("disabled")) return;
 
@@ -1579,6 +1764,7 @@
         }, { passive: true });
     }
 
+    initAnalytics();
     loadCatalog();
 })();
 </script>
