@@ -171,6 +171,7 @@ Before running outside local development, review these settings in [`application
 - `app.checker.executor.*`: effective checker concurrency and submission window
 - `app.rate-limit.*`: public API and feedback limits
 - `app.feedback.*`: abuse protection thresholds
+- `app.analytics.posthog.*`: public frontend product analytics configuration
 
 Production overrides live in [`application-prod.yaml`](./src/main/resources/application-prod.yaml).
 An example env file lives in [`.env.example`](./.env.example).
@@ -207,6 +208,7 @@ Then verify:
 - `GET /actuator/prometheus`
 - `GET /docs`
 - `GET /api/v1/proxies/stats`
+- `GET /api/v1/frontend-config`
 
 Notes:
 
@@ -257,20 +259,47 @@ Currently exposed operational endpoints:
 - `/actuator/info`
 - `/actuator/metrics`
 - `/actuator/prometheus`
+- `/api/v1/frontend-config`
 - `/docs`
 - `/v3/api-docs`
 
-Operational signals currently available:
+Prometheus scrape notes:
 
-- proxy counts by lifecycle state
-- proxy counts by verification state
-- import totals by source
-- import reject totals by source and reason
-- deep probe success/failure counts
-- import duration timers
-- checker cycle duration timers
-- checker cycle skipped counters
+- scrape `/actuator/prometheus`
+- use `/actuator/metrics` when you want to inspect meter names one by one
+- for a quick local review of custom meters, search the scrape output for `proxy_`
+
+System metrics already exported to Prometheus:
+
+- JVM memory, GC, threads, classes, and buffer pools
+- process uptime and process CPU usage
+- system CPU and load metrics
+- HTTP server request metrics such as `http_server_requests_seconds_*`
+- logging metrics such as `logback_events_total`
+
+Custom proxy metrics already exported:
+
+- `proxy_state_count`
+- `proxy_verification_count`
+- `proxy_imported_total`
+- `proxy_imported_by_source_total`
+- `proxy_import_skipped_by_source_total`
+- `proxy_import_rejected_by_source_total`
+- `proxy_import_rejected_by_source_reason_total`
+- `proxy_import_failure_by_source_total`
+- `proxy_import_duration_seconds_*`
+- `proxy_check_success_total`
+- `proxy_check_failure_total`
+- `proxy_check_cycle_duration_seconds_*`
+- `proxy_check_cycle_skipped_total`
+- `proxy_deep_probe_total`
+- `proxy_feedback_submitted_total`
 - custom health for proxy imports and checker freshness
+
+Current gaps worth knowing about:
+
+- there is still no dedicated backend metric for frontend-only actions like copy/open-link because those are now tracked in PostHog instead
+- there is no separate Prometheus dashboarding stack in this repository; only the export endpoint is provided
 
 Admin and manual operations:
 
@@ -284,6 +313,64 @@ Recommended production reverse-proxy behavior:
 - restrict `/api/v1/admin/*`, `/api/v1/check/*`, and `/api/v1/import/*`
 - preserve real client IP headers consistently, because rate limiting and feedback controls depend on client identity
 - expect `/actuator/health` to remain `DOWN` until imports and checker cycles have produced valid operational snapshots
+
+Quick local Prometheus verification:
+
+```powershell
+Invoke-WebRequest http://localhost:18081/actuator/prometheus | Select-Object -ExpandProperty Content
+```
+
+Useful checks in the scrape output:
+
+- `jvm_memory_used_bytes`
+- `process_uptime_seconds`
+- `http_server_requests_seconds_count`
+- `proxy_state_count`
+- `proxy_feedback_submitted_total`
+
+## Product Analytics
+
+The public landing page lives in [`src/main/resources/static/index.html`](./src/main/resources/static/index.html).
+PostHog is integrated there as product analytics and is configured at runtime through the public backend endpoint:
+
+- `GET /api/v1/frontend-config`
+
+Environment variables:
+
+- `APP_ANALYTICS_POSTHOG_ENABLED`
+- `APP_ANALYTICS_POSTHOG_API_KEY`
+- `APP_ANALYTICS_POSTHOG_HOST`
+
+Behavior:
+
+- if PostHog is disabled or not configured, the website still works normally
+- if the PostHog script fails to load, the website still works normally
+- the frontend sends only explicit product events; it does not rely on broad click-tracking for this integration
+
+Tracked PostHog events:
+
+- `page_view`
+- `import_started`
+- `import_finished`
+- `best_proxy_shown`
+- `copy_proxy`
+- `open_telegram_link`
+- `feedback_sent`
+
+Event notes:
+
+- on the current static landing page, `import_started` and `import_finished` are attached to the catalog load cycle because there is no separate user-facing import UI in this repository
+- `best_proxy_shown` fires when the desktop hero card shows a new best candidate
+- `copy_proxy`, `open_telegram_link`, and `feedback_sent` reuse the existing UI hooks and do not change the page behavior
+
+How to verify PostHog locally:
+
+1. Set `APP_ANALYTICS_POSTHOG_ENABLED=true`
+2. Set `APP_ANALYTICS_POSTHOG_API_KEY` to the public PostHog project key
+3. Set `APP_ANALYTICS_POSTHOG_HOST`, for example `https://us.i.posthog.com`
+4. Open the landing page and trigger copy/open/feedback actions
+5. Confirm `GET /api/v1/frontend-config` returns the PostHog config
+6. Confirm events appear in PostHog live events or in the browser network log
 
 ## Deployment Notes
 

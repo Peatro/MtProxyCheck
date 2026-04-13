@@ -2,6 +2,7 @@ package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
 import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
+import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
@@ -42,6 +43,8 @@ class ProxyFeedbackServiceImplTest {
     private ProxyScoringService proxyScoringService;
     @Mock
     private PublicCatalogCacheService publicCatalogCacheService;
+    @Mock
+    private ProxyMetricsService proxyMetricsService;
 
     @Test
     void shouldRejectDuplicateFeedbackInSameWindow() {
@@ -52,7 +55,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyCheckHistoryRepository,
                 proxyScoringService,
                 properties,
-                publicCatalogCacheService
+                publicCatalogCacheService,
+                proxyMetricsService
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
@@ -83,7 +87,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyCheckHistoryRepository,
                 proxyScoringService,
                 properties,
-                publicCatalogCacheService
+                publicCatalogCacheService,
+                proxyMetricsService
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
@@ -111,7 +116,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyCheckHistoryRepository,
                 proxyScoringService,
                 properties,
-                publicCatalogCacheService
+                publicCatalogCacheService,
+                proxyMetricsService
         );
 
         when(proxyRepository.findById(1L)).thenReturn(Optional.of(proxy()));
@@ -135,7 +141,8 @@ class ProxyFeedbackServiceImplTest {
                 proxyCheckHistoryRepository,
                 proxyScoringService,
                 properties,
-                publicCatalogCacheService
+                publicCatalogCacheService,
+                proxyMetricsService
         );
         ProxyEntity proxy = proxy();
 
@@ -158,6 +165,7 @@ class ProxyFeedbackServiceImplTest {
         );
 
         verify(proxyFeedbackRepository).save(any());
+        verify(proxyMetricsService).incrementFeedbackSubmitted(ProxyFeedbackPlatform.DESKTOP, ProxyFeedbackResult.WORKED);
         verify(proxyRepository).save(ArgumentMatchers.argThat(saved -> saved.getScore() == 77));
         verify(publicCatalogCacheService).evictProxyById(1L);
         verify(publicCatalogCacheService).evictPublicCatalogViews();

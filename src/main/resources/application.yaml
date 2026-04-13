@@ -77,6 +77,12 @@ app:
     feedback-write-limit: ${APP_RATE_LIMIT_FEEDBACK_WRITE_LIMIT:20}
     feedback-write-window-ms: ${APP_RATE_LIMIT_FEEDBACK_WRITE_WINDOW_MS:60000}
 
+  analytics:
+    posthog:
+      enabled: ${APP_ANALYTICS_POSTHOG_ENABLED:false}
+      api-key: ${APP_ANALYTICS_POSTHOG_API_KEY:}
+      host: ${APP_ANALYTICS_POSTHOG_HOST:https://us.i.posthog.com}
+
   sources:
     entries:
       - name: solispirit

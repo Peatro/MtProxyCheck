@@ -2,6 +2,8 @@ package com.peatroxd.mtprototest.common.metrics;
 
 import com.peatroxd.mtprototest.checker.model.MtProtoProbeFailureCode;
 import com.peatroxd.mtprototest.parser.model.RawProxyRejectReason;
+import com.peatroxd.mtprototest.proxy.enums.ProxyFeedbackPlatform;
+import com.peatroxd.mtprototest.proxy.enums.ProxyFeedbackResult;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -83,6 +85,14 @@ public class ProxyMetricsService {
         meterRegistry.counter("proxy.deep_probe.total", "outcome", "failure", "failure_code", tagValue).increment();
     }
 
+    public void incrementFeedbackSubmitted(ProxyFeedbackPlatform platform, ProxyFeedbackResult result) {
+        meterRegistry.counter(
+                "proxy.feedback.submitted.total",
+                "platform", normalizeFeedbackPlatformTag(platform),
+                "result", normalizeFeedbackResultTag(result)
+        ).increment();
+    }
+
     public void recordImportDuration(String sourceName, Duration duration, boolean success) {
         if (duration == null || duration.isNegative()) {
             return;
@@ -122,5 +132,13 @@ public class ProxyMetricsService {
 
     private String normalizeRejectReasonTag(RawProxyRejectReason rejectReason) {
         return rejectReason != null ? rejectReason.name() : "UNKNOWN";
+    }
+
+    private String normalizeFeedbackPlatformTag(ProxyFeedbackPlatform platform) {
+        return platform != null ? platform.name() : "UNKNOWN";
+    }
+
+    private String normalizeFeedbackResultTag(ProxyFeedbackResult result) {
+        return result != null ? result.name() : "UNKNOWN";
     }
 }

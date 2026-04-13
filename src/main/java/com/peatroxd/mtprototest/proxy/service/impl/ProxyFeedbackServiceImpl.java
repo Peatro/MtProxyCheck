@@ -2,6 +2,7 @@ package com.peatroxd.mtprototest.proxy.service.impl;
 
 import com.peatroxd.mtprototest.checker.repository.ProxyCheckHistoryRepository;
 import com.peatroxd.mtprototest.common.cache.PublicCatalogCacheService;
+import com.peatroxd.mtprototest.common.metrics.ProxyMetricsService;
 import com.peatroxd.mtprototest.proxy.config.FeedbackProperties;
 import com.peatroxd.mtprototest.proxy.dto.request.ProxyFeedbackRequest;
 import com.peatroxd.mtprototest.proxy.dto.response.ProxyFeedbackResponse;
@@ -42,6 +43,7 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
     private final ProxyScoringService proxyScoringService;
     private final FeedbackProperties feedbackProperties;
     private final PublicCatalogCacheService publicCatalogCacheService;
+    private final ProxyMetricsService proxyMetricsService;
 
     @Override
     @Transactional
@@ -88,6 +90,7 @@ public class ProxyFeedbackServiceImpl implements ProxyFeedbackService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Feedback already submitted for this proxy in the current time window");
         }
 
+        proxyMetricsService.incrementFeedbackSubmitted(platform, request.result());
         proxy.setScore(proxyScoringService.calculateScore(new ProxyScoreContext(
                 proxy,
                 proxyCheckHistoryRepository.findTop20ByProxyIdOrderByCheckedAtDesc(proxyId),
