@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:15
-    container_name: mtproto-postgres
+    container_name: mtproxy-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mtproxy_db}
@@ -10,29 +10,55 @@ services:
     volumes:
       - mtproto-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 10
     networks:
-        - mtproxycheck_net
+      - mtproxycheck_net
 
-  backend:
+  mtproxy-backend:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mtproto_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-mtproxy_db}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+      APP_ADMIN_ENABLED: ${APP_ADMIN_ENABLED:-false}
+      APP_ADMIN_HEADER_NAME: ${APP_ADMIN_HEADER_NAME:-X-Admin-Key}
+      APP_ADMIN_KEY: ${APP_ADMIN_KEY:-}
+
+      APP_STARTUP_BOOTSTRAP_ENABLED: ${APP_STARTUP_BOOTSTRAP_ENABLED:-true}
+      APP_STARTUP_CHECK_BATCH_SIZE: ${APP_STARTUP_CHECK_BATCH_SIZE:-120}
+      APP_STARTUP_DEEP_PROBE_LIMIT: ${APP_STARTUP_DEEP_PROBE_LIMIT:-10}
+
+      APP_CHECKER_BATCH_SIZE: ${APP_CHECKER_BATCH_SIZE:-200}
+      APP_CHECKER_DEEP_PROBE_LIMIT: ${APP_CHECKER_DEEP_PROBE_LIMIT:-20}
+      APP_CHECKER_EXECUTOR_EFFECTIVE_CONCURRENCY: ${APP_CHECKER_EXECUTOR_EFFECTIVE_CONCURRENCY:-24}
+      APP_CHECKER_EXECUTOR_SUBMISSION_WINDOW_SIZE: ${APP_CHECKER_EXECUTOR_SUBMISSION_WINDOW_SIZE:-24}
+
+      APP_RATE_LIMIT_ENABLED: ${APP_RATE_LIMIT_ENABLED:-true}
+      APP_RATE_LIMIT_PUBLIC_READ_LIMIT: ${APP_RATE_LIMIT_PUBLIC_READ_LIMIT:-120}
+      APP_RATE_LIMIT_FEEDBACK_WRITE_LIMIT: ${APP_RATE_LIMIT_FEEDBACK_WRITE_LIMIT:-20}
+
+      MANAGEMENT_EXPOSURE_INCLUDE: ${MANAGEMENT_EXPOSURE_INCLUDE:-health,info,metrics,prometheus}
+      MANAGEMENT_HEALTH_SHOW_DETAILS: ${MANAGEMENT_HEALTH_SHOW_DETAILS:-always}
+      SPRINGDOC_SWAGGER_UI_ENABLED: ${SPRINGDOC_SWAGGER_UI_ENABLED:-false}
+      SPRINGDOC_API_DOCS_ENABLED: ${SPRINGDOC_API_DOCS_ENABLED:-false}
+      APP_ANALYTICS_POSTHOG_ENABLED: ${APP_ANALYTICS_POSTHOG_ENABLED:-false}
+      APP_ANALYTICS_POSTHOG_API_KEY: ${APP_ANALYTICS_POSTHOG_API_KEY:-}
+      APP_ANALYTICS_POSTHOG_HOST: ${APP_ANALYTICS_POSTHOG_HOST:-https://us.i.posthog.com}
     expose:
-      - "8080"
+        - "8080"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - mtproxycheck_net
+        - mtproxycheck_net
 
 volumes:
   mtproto-postgres-data:
