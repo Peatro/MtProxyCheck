@@ -150,9 +150,17 @@
 
         /* ── HERO ────────────────────────────────────────────────── */
         .hero {
-            padding: 48px 0 40px;
+            padding: 56px 0 56px;
             border-bottom: 1px solid var(--border-s);
         }
+        .hero .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .hero h1 { max-width: 700px; }
+        .hero .status-bar { text-align: left; width: 100%; max-width: 560px; }
         .hero-eyebrow {
             display: inline-flex;
             align-items: center;
@@ -171,11 +179,86 @@
             background: var(--blue);
             flex-shrink: 0;
         }
-        .hero-grid {
+
+        /* ── TRUST LINE ──────────────────────────────────────────── */
+        .trust-line {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 28px;
+            min-height: 18px;
+        }
+
+        /* ── HERO CTA ────────────────────────────────────────────── */
+        .hero-cta {
             display: grid;
-            grid-template-columns: 1.25fr 0.75fr;
-            gap: 56px;
-            align-items: start;
+            gap: 10px;
+            width: 100%;
+            max-width: 480px;
+        }
+        /* внутри CTA текст и meta выравниваем влево — читается лучше */
+        .hero-proxy-meta,
+        .copy-fallback,
+        .hero-cta .status-note,
+        .hero-cta .mini-copy { text-align: left; }
+
+        /* ── HERO PROXY META ─────────────────────────────────────── */
+        .hero-proxy-meta {
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .proxy-meta-address {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: -.03em;
+            color: var(--ink);
+            word-break: break-word;
+            margin: 8px 0 4px;
+        }
+        .proxy-meta-row {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ── COPY FALLBACK ───────────────────────────────────────── */
+        .copy-fallback {
+            padding: 20px;
+            border-radius: 12px;
+            background: var(--c-warn-bg);
+            border: 1px solid var(--c-warn-border);
+            display: grid;
+            gap: 12px;
+        }
+        .copy-fallback-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-warn);
+        }
+        .copy-fallback-body {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .copy-field {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+        .copy-field input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-size: 13px;
+            color: var(--ink);
+            min-width: 0;
+        }
+        .copy-field-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         h1 {
             font-size: clamp(36px, 4vw, 52px);
@@ -209,6 +292,7 @@
         }
         .aside-note-body { font-size: 12px; color: var(--muted); line-height: 1.65; }
         .status-bar {
+            display: none;
             margin-bottom: 16px;
             padding: 12px 18px;
             border-radius: 12px;
@@ -217,6 +301,7 @@
             font-size: 13px;
             color: var(--muted);
         }
+        .status-bar.visible { display: block; }
         .status-bar.error {
             background: var(--c-danger-bg);
             border-color: var(--c-danger-border);
@@ -294,7 +379,7 @@
 
         /* ── KICKER ──────────────────────────────────────────────── */
         .kicker {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             letter-spacing: .08em;
             text-transform: uppercase;
@@ -445,6 +530,18 @@
             border-color: var(--c-danger);
         }
         .btn:disabled, .btn.disabled { opacity: .35; pointer-events: none; }
+        .btn.ghost {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--muted);
+            font-size: 14px;
+            padding: 10px 18px;
+        }
+        .btn.ghost:hover:not(:disabled):not(.disabled) {
+            background: var(--surface-2);
+            color: var(--ink);
+            border-color: var(--border);
+        }
 
         /* ── BUTTON GRIDS (JS-rendered) ─────────────────────────── */
         .btn-row, .feedback-row, .pack-actions {
@@ -489,6 +586,11 @@
 
         /* ── MINI CARDS (JS-rendered) ────────────────────────────── */
         .list { display: grid; gap: 8px; }
+        .pack-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
         .mini-card {
             background: var(--surface-2);
             border: 1px solid var(--border);
@@ -690,13 +792,14 @@
         @media (max-width: 640px) {
             .container { width: calc(100% - 32px); }
             h1 { font-size: clamp(30px, 9vw, 40px); }
-            .hero { padding: 28px 0 24px; }
+            .hero { padding: 28px 0 32px; }
             .section-wrap { padding: 40px 0; }
             .proxy-head h2, .section-head h2 { font-size: 22px; }
             .info-col-heading { font-size: 22px; }
             .proxy-head, .section-head, .best-top, .mini-head { flex-direction: column; align-items: flex-start; }
             .facts { grid-template-columns: repeat(2, 1fr); }
             .btn-row, .feedback-row, .pack-actions, .meta-grid { grid-template-columns: 1fr; }
+            .pack-list { grid-template-columns: 1fr; }
             .footer-inner { flex-direction: column; text-align: center; gap: 8px; }
         }
     </style>
@@ -723,143 +826,35 @@
 <section class="hero">
     <div class="container">
         <div class="hero-eyebrow">MTProto Proxy Catalog</div>
-        <div class="hero-grid">
-            <div>
-                <h1>Открой Telegram через лучший прокси прямо сейчас</h1>
-                <p class="hero-lead">Сервис показывает один основной прокси, даёт запасные варианты и готовый набор для телефона. Сначала нажми главную кнопку. Если не сработает, переходи к следующему.</p>
-                <div id="status" class="status-bar">Загружаю каталог...</div>
-                <div class="hero-actions">
-                    <a class="btn primary" href="#best-proxy">Открыть лучший прокси</a>
-                    <a class="btn secondary" href="#mobile-pack">Набор для телефона</a>
-                </div>
-            </div>
-            <aside class="hero-aside">
-                <div class="aside-note">
-                    <div class="aside-note-title">Сценарий на 10 секунд</div>
-                    <div class="aside-note-body">1. Открой лучший прокси. 2. Если не сработал, нажми следующий. 3. На телефоне используй готовый набор ссылок.</div>
-                </div>
-                <div class="aside-note">
-                    <div class="aside-note-title">Как работает сервис</div>
-                    <div class="aside-note-body">Результаты обновляются по API и проверкам. Метрики нужны для доверия, но не отвлекают от основного действия.</div>
-                </div>
-            </aside>
+        <h1>Открой Telegram прямо сейчас</h1>
+        <div id="trustLine" class="trust-line">
+            <span class="skel" style="height:14px;width:220px;border-radius:4px" aria-hidden="true"></span>
         </div>
+        <div id="status" class="status-bar" role="status"></div>
+        <div id="heroCta" class="hero-cta" aria-live="polite"></div>
     </div>
 </section>
 
-<!-- ══════════════════════════════════════════════
-     STATS BAND — white, divided cells
-══════════════════════════════════════════════ -->
-<section class="stats-band" aria-label="Статистика каталога">
-    <div class="container">
-        <div class="stats">
-            <article class="stat">
-                <div class="stat-label">В каталоге сейчас</div>
-                <div id="heroCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
-                <div class="stat-desc">Вариантов доступно для быстрого выбора.</div>
-            </article>
-            <article class="stat">
-                <div class="stat-label">Проверены Telegram</div>
-                <div id="verifiedCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
-                <div class="stat-desc">Прошли полную проверку, приоритет выдачи.</div>
-            </article>
-            <article class="stat">
-                <div class="stat-label">Живые сейчас</div>
-                <div id="aliveCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
-                <div class="stat-desc">Отвечали на последней проверке.</div>
-            </article>
-            <article class="stat">
-                <div class="stat-label">Проверок за 24 часа</div>
-                <div id="checksCount" class="stat-value"><span class="skel skel-stat" aria-hidden="true"></span></div>
-                <div class="stat-desc"><span id="deepRate">—</span> deep-check завершились успешно.</div>
-            </article>
-        </div>
-    </div>
-</section>
 
 <!-- ══════════════════════════════════════════════
-     BEST PROXY — DARK section
+     MOBILE PACK — white section
 ══════════════════════════════════════════════ -->
-<section id="best-proxy" class="dark section-wrap">
+<section id="mobile-pack" class="section-wrap" style="border-bottom: 1px solid var(--border-s);">
     <div class="container">
-        <div class="proxy-head">
+        <div class="section-head">
             <div>
-                <div class="kicker">Главное действие</div>
-                <h2>Лучший прокси сейчас</h2>
-                <p>Центральная карточка. Открывай её первой — не разбирай длинный список вручную.</p>
+                <div class="kicker">Для телефона</div>
+                <h2>Готовый набор ссылок</h2>
+                <p>Нажимай по одной — каждая добавит прокси в Telegram. Пробуй пока не найдёшь рабочий.</p>
             </div>
-            <div id="desktopPos" class="badge">Вариант 0 / 0</div>
+            <div id="mobileSize" class="badge">Набор 0</div>
         </div>
-        <div id="desktopPanel" aria-live="polite">
-            <article class="best-main">
-                <div class="best-top">
-                    <div style="flex:1;min-width:0">
-                        <span class="skel" style="height:11px;width:32%;border-radius:4px;margin-bottom:14px"></span>
-                        <span class="skel" style="height:36px;width:58%;border-radius:6px;margin-bottom:12px"></span>
-                        <span class="skel" style="height:12px;width:82%;border-radius:4px"></span>
-                        <span class="skel" style="height:12px;width:56%;border-radius:4px;margin-top:6px"></span>
-                    </div>
-                </div>
-                <span class="skel" style="height:56px;border-radius:12px"></span>
-                <span class="skel" style="height:46px;border-radius:56px"></span>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <span class="skel" style="height:46px;border-radius:56px"></span>
-                    <span class="skel" style="height:46px;border-radius:56px"></span>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <span class="skel" style="height:46px;border-radius:56px"></span>
-                    <span class="skel" style="height:46px;border-radius:56px"></span>
-                </div>
-            </article>
-        </div>
-    </div>
-</section>
-
-<!-- ══════════════════════════════════════════════
-     MOBILE PACK + FALLBACK — white section
-══════════════════════════════════════════════ -->
-<section class="section-wrap" style="border-bottom: 1px solid var(--border-s);">
-    <div class="container">
-        <div class="two-col">
-
-            <!-- Mobile pack -->
-            <div id="mobile-pack">
-                <div class="section-head">
-                    <div>
-                        <div class="kicker">Для телефона</div>
-                        <h2>Готовый набор ссылок</h2>
-                        <p>Вставь несколько вариантов в мобильный Telegram сразу и пробуй по порядку.</p>
-                    </div>
-                    <div id="mobileSize" class="badge">Набор 0</div>
-                </div>
-                <div id="mobilePanel" aria-live="polite">
-                    <div class="list">
-                        <div class="mini-card"><span class="skel" style="height:14px;width:62%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:80%;border-radius:4px"></span></div>
-                        <div class="mini-card"><span class="skel" style="height:14px;width:52%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:72%;border-radius:4px"></span></div>
-                        <div class="mini-card"><span class="skel" style="height:14px;width:57%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:68%;border-radius:4px"></span></div>
-                    </div>
-                </div>
+        <div id="mobilePanel" aria-live="polite">
+            <div class="pack-list">
+                <div class="mini-card"><span class="skel" style="height:14px;width:58%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:36%;border-radius:4px;margin-bottom:14px"></span><span class="skel" style="height:40px;border-radius:56px"></span></div>
+                <div class="mini-card"><span class="skel" style="height:14px;width:50%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:30%;border-radius:4px;margin-bottom:14px"></span><span class="skel" style="height:40px;border-radius:56px"></span></div>
+                <div class="mini-card"><span class="skel" style="height:14px;width:54%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:32%;border-radius:4px;margin-bottom:14px"></span><span class="skel" style="height:40px;border-radius:56px"></span></div>
             </div>
-
-            <!-- Fallback queue -->
-            <div>
-                <div class="section-head">
-                    <div>
-                        <div class="kicker">Запасные варианты</div>
-                        <h2>Что попробовать дальше</h2>
-                        <p>Список на случай, если первый вариант не подошёл именно в твоей сети.</p>
-                    </div>
-                    <div class="badge">Fallback list</div>
-                </div>
-                <div id="queuePanel" aria-live="polite">
-                    <div class="list">
-                        <div class="mini-card"><span class="skel" style="height:14px;width:68%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:55%;border-radius:4px"></span></div>
-                        <div class="mini-card"><span class="skel" style="height:14px;width:48%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:64%;border-radius:4px"></span></div>
-                        <div class="mini-card"><span class="skel" style="height:14px;width:58%;border-radius:4px;margin-bottom:10px"></span><span class="skel" style="height:11px;width:74%;border-radius:4px"></span></div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 </section>
@@ -876,7 +871,7 @@
         <div class="faq">
             <article class="faq-item">
                 <h3>Что делать, если первый вариант не сработал?</h3>
-                <p>Нажми кнопку перехода к следующему прокси или открой блок с запасными вариантами. На телефоне проще сразу скопировать набор ссылок и попробовать их по очереди.</p>
+                <p>Прокрути вниз к блоку «Готовый набор ссылок» и нажимай кнопки по очереди — каждая добавит прокси в Telegram. Пробуй до первого рабочего.</p>
             </article>
             <article class="faq-item">
                 <h3>Почему прокси может работать у одного пользователя и не работать у другого?</h3>
@@ -888,7 +883,7 @@
             </article>
             <article class="faq-item">
                 <h3>Как использовать набор для телефона?</h3>
-                <p>Скопируй tg:// или web-набор из блока для телефона и вставь ссылки в мобильный Telegram. Набор уже отсортирован по приоритету: сначала более сильные варианты, потом запасные.</p>
+                <p>Каждая карточка в блоке ниже — отдельный прокси с кнопкой «Открыть в Telegram». Нажимай по одной сверху вниз — Telegram откроется и предложит добавить прокси. Продолжай пока один не заработает.</p>
             </article>
         </div>
     </div>
@@ -985,16 +980,10 @@
     // DOM
     const dom = {
         status: document.getElementById("status"),
-        heroCount: document.getElementById("heroCount"),
-        verifiedCount: document.getElementById("verifiedCount"),
-        aliveCount: document.getElementById("aliveCount"),
-        checksCount: document.getElementById("checksCount"),
-        deepRate: document.getElementById("deepRate"),
-        desktopPos: document.getElementById("desktopPos"),
-        desktopPanel: document.getElementById("desktopPanel"),
+        trustLine: document.getElementById("trustLine"),
+        heroCta: document.getElementById("heroCta"),
         mobileSize: document.getElementById("mobileSize"),
         mobilePanel: document.getElementById("mobilePanel"),
-        queuePanel: document.getElementById("queuePanel"),
         toast: document.getElementById("toast")
     };
 
@@ -1270,8 +1259,14 @@
     }
 
     function setStatus(message, isError = false) {
+        if (!message) {
+            dom.status.classList.remove("visible", "error");
+            dom.status.textContent = "";
+            return;
+        }
         dom.status.textContent = message;
         dom.status.classList.toggle("error", isError);
+        dom.status.classList.add("visible");
     }
 
     // API
@@ -1345,6 +1340,249 @@
             .slice(0, CONFIG.limits.mobilePack);
     }
 
+    // ── HERO CTA STATE MACHINE ────────────────────────────────────
+    const HeroCta = Object.freeze({
+        LOADING:     "loading",
+        READY:       "ready",
+        FALLBACK:    "fallback",
+        ERROR:       "error",
+        TIMEOUT:     "timeout"
+    });
+
+    function isMobileLike() {
+        return (
+            ("ontouchstart" in window || navigator.maxTouchPoints > 0) &&
+            /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        );
+    }
+
+    function renderTrustLine(proxies, stats) {
+        if (!dom.trustLine) return;
+        const alive    = stats?.aliveCount    ?? 0;
+        const verified = stats?.verifiedCount ?? 0;
+        dom.trustLine.textContent =
+            `${formatCount(alive)} живых · ${formatCount(verified)} проверено Telegram · обновлено только что`;
+    }
+
+    function renderHeroProxyMeta(proxy, view, index, total) {
+        const posLabel = total > 1 ? ` · вариант ${index + 1} из ${total}` : "";
+        return `
+            <div class="hero-proxy-meta">
+                <div class="status-pill ${view.className}">${escapeHtml(view.label)}</div>
+                <div class="proxy-meta-address">${escapeHtml(proxy.host)}:${escapeHtml(toText(proxy.port, "—"))}</div>
+                <div class="proxy-meta-row">${escapeHtml(formatLatency(proxy.lastLatencyMs))} · проверено ${escapeHtml(formatTimeAgo(proxy.lastCheckedAt))}${escapeHtml(posLabel)}</div>
+            </div>
+        `;
+    }
+
+    function renderHeroCta(ctaState, proxy) {
+        const el = dom.heroCta;
+        if (!el) return;
+
+        // ── LOADING ──
+        if (ctaState === HeroCta.LOADING) {
+            el.innerHTML = `
+                <span class="skel" style="height:52px;border-radius:56px" aria-hidden="true"></span>
+                <div class="hero-proxy-meta">
+                    <span class="skel" style="height:11px;width:38%;border-radius:4px;margin-bottom:10px" aria-hidden="true"></span>
+                    <span class="skel" style="height:20px;width:60%;border-radius:4px;margin-bottom:8px" aria-hidden="true"></span>
+                    <span class="skel" style="height:11px;width:46%;border-radius:4px" aria-hidden="true"></span>
+                </div>
+            `;
+            return;
+        }
+
+        // ── ERROR / TIMEOUT ──
+        if (ctaState === HeroCta.ERROR || ctaState === HeroCta.TIMEOUT) {
+            const isTimeout = ctaState === HeroCta.TIMEOUT;
+            el.innerHTML = `
+                <button class="btn secondary btn-block" disabled type="button">
+                    ${isTimeout ? "Загрузка занимает больше обычного..." : "Не удалось загрузить данные"}
+                </button>
+                <p class="status-note">Попробуй резервные варианты ниже или обнови страницу.</p>
+                <div class="btn-row">
+                    <a class="btn ghost" href="#mobile-pack">Резервные варианты</a>
+                    <button class="btn ghost" id="retryBtn" type="button">Обновить</button>
+                </div>
+            `;
+            const retryBtn = document.getElementById("retryBtn");
+            if (retryBtn) retryBtn.addEventListener("click", loadCatalog);
+            return;
+        }
+
+        if (!proxy) return;
+
+        const view          = getProxyView(proxy);
+        const mobile        = isMobileLike();
+        const hasDeepLink   = Boolean(proxy.telegramDeepLink);
+        const hasWebLink    = Boolean(proxy.telegramWebLink);
+        const hasLink       = hasDeepLink || hasWebLink;
+        const feedbackLocked = hasFeedback(proxy.id, CONFIG.feedbackPlatforms.desktop);
+        const hasNextProxy  = appState.currentDesktopIndex < appState.proxies.length - 1;
+        const total         = appState.proxies.length;
+        const idx           = appState.currentDesktopIndex;
+        const metaHtml      = renderHeroProxyMeta(proxy, view, idx, total);
+
+        // ── FALLBACK (tg:// не открылся) ──
+        if (ctaState === HeroCta.FALLBACK) {
+            const linkToCopy = proxy.telegramDeepLink || proxy.telegramWebLink || "";
+            el.innerHTML = `
+                <div class="copy-fallback">
+                    <div class="copy-fallback-title">Telegram не открылся</div>
+                    <div class="copy-fallback-body">Ссылка скопирована — вставь её в Telegram вручную, или открой как веб-ссылку:</div>
+                    <div class="copy-field">
+                        <input id="copyFieldInput" type="text" readonly value="${escapeHtml(linkToCopy)}">
+                        <button class="btn secondary" id="copyFieldBtn" type="button">Скопировать</button>
+                    </div>
+                    <div class="copy-field-actions">
+                        ${hasWebLink ? `<a class="btn secondary" href="${escapeHtml(proxy.telegramWebLink)}" target="_blank" rel="noreferrer">Открыть как ссылку</a>` : ""}
+                        ${hasNextProxy ? `<button class="btn ghost" id="nextFromFallbackBtn" type="button">Попробовать другой прокси</button>` : ""}
+                    </div>
+                </div>
+                ${metaHtml}
+            `;
+            const copyFieldBtn   = document.getElementById("copyFieldBtn");
+            const copyFieldInput = document.getElementById("copyFieldInput");
+            if (copyFieldBtn) {
+                copyFieldBtn.addEventListener("click", async () => {
+                    try {
+                        await copyToClipboard(linkToCopy);
+                        showToast("Ссылка скопирована");
+                    } catch {
+                        if (copyFieldInput) { copyFieldInput.select(); }
+                        showToast("Выдели и скопируй вручную");
+                    }
+                });
+            }
+            const nextFromFallbackBtn = document.getElementById("nextFromFallbackBtn");
+            if (nextFromFallbackBtn) {
+                nextFromFallbackBtn.addEventListener("click", () => {
+                    appState.currentDesktopIndex += 1;
+                    renderHeroCta(HeroCta.READY, getCurrentDesktopProxy());
+                    showToast(`Вариант ${appState.currentDesktopIndex + 1}`);
+                });
+            }
+            return;
+        }
+
+        // ── READY ──
+        const primaryBtnHtml = mobile
+            ? `<button class="btn primary btn-block" id="mobileCtaBtn" type="button" ${!hasLink ? "disabled" : ""}>Открыть в Telegram</button>`
+            : `<a class="btn primary btn-block ${!hasDeepLink ? "disabled" : ""}" href="${escapeHtml(proxy.telegramDeepLink || "#")}" data-analytics-event="open-telegram-link" data-link-type="tg_deep_link" data-platform="desktop" data-source-section="hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть в Telegram</a>`;
+
+        el.innerHTML = `
+            ${primaryBtnHtml}
+            <div class="btn-row">
+                <a class="btn secondary ${!hasWebLink ? "disabled" : ""}" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer" data-analytics-event="open-telegram-link" data-link-type="web_link" data-platform="${mobile ? "mobile" : "desktop"}" data-source-section="hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть как ссылку</a>
+                <button class="btn secondary" id="copyBtn" type="button" ${!hasLink ? "disabled" : ""}>Скопировать</button>
+            </div>
+            ${metaHtml}
+            <div class="feedback-row">
+                <button class="btn safe"   id="desktopOk"   type="button" ${feedbackLocked ? "disabled" : ""}>Сработало</button>
+                <button class="btn danger" id="desktopFail" type="button" ${feedbackLocked ? "disabled" : ""}>Не сработало</button>
+            </div>
+            ${hasNextProxy ? `<button class="btn ghost btn-block" id="nextBtn" type="button">Попробовать следующий вариант</button>` : ""}
+        `;
+
+        // mobile combo
+        if (mobile) {
+            const mobileCtaBtn = document.getElementById("mobileCtaBtn");
+            if (mobileCtaBtn && hasLink) {
+                mobileCtaBtn.addEventListener("click", () => handleMobileCtaClick(proxy));
+            }
+        }
+
+        // copy
+        const copyBtn = document.getElementById("copyBtn");
+        if (copyBtn && hasLink) {
+            copyBtn.addEventListener("click", async () => {
+                try {
+                    await copyToClipboard(proxy.telegramDeepLink || proxy.telegramWebLink);
+                    queueAnalyticsEvent("copy_proxy", {
+                        proxy_id: proxy.id,
+                        platform: mobile ? "mobile" : "desktop",
+                        source_section: "hero",
+                        link_type: proxy.telegramDeepLink ? "tg_deep_link" : "web_link"
+                    });
+                    showToast("Ссылка скопирована");
+                } catch {
+                    showToast("Не удалось скопировать");
+                }
+            });
+        }
+
+        // next
+        const nextBtn = document.getElementById("nextBtn");
+        if (nextBtn && hasNextProxy) {
+            nextBtn.addEventListener("click", () => {
+                appState.currentDesktopIndex += 1;
+                renderHeroCta(HeroCta.READY, getCurrentDesktopProxy());
+                showToast(`Вариант ${appState.currentDesktopIndex + 1}`);
+            });
+        }
+
+        bindFeedbackControls({
+            proxy,
+            platform: CONFIG.feedbackPlatforms.desktop,
+            okButtonId:      "desktopOk",
+            failButtonId:    "desktopFail",
+            successMessage:  "Отзыв сохранён: сработало",
+            failureMessage:  "Отзыв сохранён: не сработало"
+        });
+
+        trackBestProxyShown(proxy);
+    }
+
+    function handleMobileCtaClick(proxy) {
+        const link = proxy.telegramDeepLink || proxy.telegramWebLink;
+        if (!link) return;
+
+        queueAnalyticsEvent("open_telegram_link", {
+            proxy_id: proxy.id,
+            platform: "mobile",
+            source_section: "hero",
+            link_type: proxy.telegramDeepLink ? "tg_deep_link" : "web_link"
+        });
+
+        // копируем в фоне — страховка на случай если tg:// не откроется
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(link).catch(() => {});
+        }
+
+        const isTgLink = link.startsWith("tg://");
+        if (!isTgLink) {
+            window.open(link, "_blank", "noreferrer");
+            return;
+        }
+
+        window.location.href = link;
+
+        let appOpened = false;
+
+        const onBlur = () => {
+            appOpened = true;
+            clearTimeout(timer);
+            document.removeEventListener("visibilitychange", onVisChange);
+        };
+        const onVisChange = () => {
+            if (document.hidden) {
+                appOpened = true;
+                clearTimeout(timer);
+                window.removeEventListener("blur", onBlur);
+            }
+        };
+        const timer = setTimeout(() => {
+            window.removeEventListener("blur", onBlur);
+            document.removeEventListener("visibilitychange", onVisChange);
+            if (!appOpened) {
+                renderHeroCta(HeroCta.FALLBACK, proxy);
+            }
+        }, 1400);
+
+        window.addEventListener("blur", onBlur, { once: true });
+        document.addEventListener("visibilitychange", onVisChange, { once: true });
+    }
+
     // Rendering helpers
     function renderStateBlock(title, copy, actionHtml = "") {
         return `
@@ -1356,119 +1594,31 @@
         `;
     }
 
-    function renderMetricValue(element, value) {
-        element.textContent = value;
-    }
 
-    function renderMetrics() {
-        const stats = appState.stats;
-        const deepChecks = (stats.recentChecks.successfulDeepChecks ?? 0) + (stats.recentChecks.failedDeepChecks ?? 0);
-        const deepRate = deepChecks === 0 ? 0 : Math.round((stats.recentChecks.successfulDeepChecks / deepChecks) * 100);
-
-        renderMetricValue(dom.heroCount, formatCount(appState.proxies.length));
-        renderMetricValue(dom.verifiedCount, formatCount(stats.verifiedCount));
-        renderMetricValue(dom.aliveCount, formatCount(stats.aliveCount));
-        renderMetricValue(dom.checksCount, formatCount(stats.recentChecks.totalChecks));
-        renderMetricValue(dom.deepRate, `${deepRate}%`);
-    }
-
-    function renderMetaCell(label, value) {
-        return `<div class="meta-cell"><div class="meta-label">${escapeHtml(label)}</div><div class="meta-value">${escapeHtml(value)}</div></div>`;
-    }
-
-    function renderFacts(proxy) {
-        return `
-            <div class="facts">
-                <div class="fact"><div class="meta-label">Последняя проверка</div><div class="fact-value">${escapeHtml(formatTimeAgo(proxy.lastCheckedAt))}</div></div>
-                <div class="fact"><div class="meta-label">Последний успех</div><div class="fact-value">${escapeHtml(formatTimeAgo(proxy.lastSuccessAt))}</div></div>
-                <div class="fact"><div class="meta-label">Задержка</div><div class="fact-value">${escapeHtml(formatLatency(proxy.lastLatencyMs))}</div></div>
-                <div class="fact"><div class="meta-label">Score</div><div class="fact-value">${escapeHtml(formatScore(proxy.score))}</div></div>
-            </div>
-        `;
-    }
-
-    function renderProxyMiniCard(proxy, title) {
-        const view = getProxyView(proxy);
+    function renderProxyMiniCard(proxy, index) {
+        const view        = getProxyView(proxy);
+        const hasDeepLink = Boolean(proxy.telegramDeepLink);
         return `
             <article class="mini-card">
                 <div class="mini-head">
-                    <div>
-                        <h3 class="mini-title">${escapeHtml(title)}</h3>
-                        <div class="mini-copy">${escapeHtml(view.caption)}</div>
+                    <div style="min-width:0;flex:1">
+                        <h3 class="mini-title">#${index + 1} ${escapeHtml(proxy.host)}:${escapeHtml(toText(proxy.port, "—"))}</h3>
+                        <div class="mini-copy">${escapeHtml(formatTimeAgo(proxy.lastCheckedAt))}</div>
                     </div>
                     <div class="status-pill ${view.className}">${escapeHtml(view.label)}</div>
                 </div>
-                <div class="meta-grid">
-                    ${renderMetaCell("Score", formatScore(proxy.score))}
-                    ${renderMetaCell("Задержка", formatLatency(proxy.lastLatencyMs))}
-                    ${renderMetaCell("Проверка", formatTimeAgo(proxy.lastCheckedAt))}
-                </div>
+                <a class="btn primary btn-block ${hasDeepLink ? "" : "disabled"}"
+                   href="${escapeHtml(proxy.telegramDeepLink || "#")}"
+                   style="margin-top:10px"
+                   data-analytics-event="open-telegram-link"
+                   data-link-type="tg_deep_link"
+                   data-platform="mobile"
+                   data-source-section="mobile_pack"
+                   data-proxy-id="${escapeHtml(proxy.id)}">Открыть в Telegram</a>
             </article>
         `;
     }
 
-    function renderHeroState() {
-        dom.desktopPos.textContent = `Вариант ${appState.proxies.length ? appState.currentDesktopIndex + 1 : 0} / ${appState.proxies.length}`;
-    }
-
-    function renderBestProxy() {
-        renderHeroState();
-        const proxy = getCurrentDesktopProxy();
-
-        if (!proxy) {
-            dom.desktopPanel.innerHTML = renderStateBlock(
-                "Подходящий прокси не найден",
-                "Сейчас сервис не может показать основной вариант для запуска Telegram."
-            );
-            return;
-        }
-
-        const view = getProxyView(proxy);
-        const hasNextProxy = appState.currentDesktopIndex < appState.proxies.length - 1;
-        const hasLink = Boolean(proxy.telegramDeepLink || proxy.telegramWebLink);
-        const feedbackLocked = hasFeedback(proxy.id, CONFIG.feedbackPlatforms.desktop);
-        const statusCopy = proxy.status === "ALIVE"
-            ? "Прокси отвечал на последней проверке."
-            : "Прокси есть в каталоге, но свежий ответ не подтверждён.";
-
-        dom.desktopPanel.innerHTML = `
-            <div class="best-card">
-                <article class="best-main">
-                    <div class="best-top">
-                        <div>
-                            <div class="kicker">Основной вариант</div>
-                            <h3 class="proxy-address">${escapeHtml(proxy.host)}:${escapeHtml(toText(proxy.port, "-"))}</h3>
-                            <div class="status-note">${escapeHtml(view.caption)} ${escapeHtml(statusCopy)}</div>
-                        </div>
-                        <div class="status-pill ${view.className}">${escapeHtml(view.label)}</div>
-                    </div>
-                    ${renderFacts(proxy)}
-                    <a class="btn primary btn-block ${proxy.telegramDeepLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramDeepLink || "#")}" data-analytics-event="open-telegram-link" data-link-type="tg_deep_link" data-platform="desktop" data-source-section="desktop_hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть в Telegram</a>
-                    <div class="btn-row">
-                        <a class="btn secondary ${proxy.telegramWebLink ? "" : "disabled"}" href="${escapeHtml(proxy.telegramWebLink || "#")}" target="_blank" rel="noreferrer" data-analytics-event="open-telegram-link" data-link-type="web_link" data-platform="desktop" data-source-section="desktop_hero" data-proxy-id="${escapeHtml(proxy.id)}">Открыть как ссылку</a>
-                        <button class="btn secondary" id="copyCurrentBtn" type="button" ${hasLink ? "" : "disabled"}>Скопировать ссылку</button>
-                    </div>
-                    <button class="btn btn-block" id="nextBtn" type="button" ${hasNextProxy ? "" : "disabled"}>${hasNextProxy ? "Попробовать следующий" : "Это последний вариант"}</button>
-                    <div class="feedback-row">
-                        <button class="btn safe" id="desktopOk" type="button" ${feedbackLocked ? "disabled" : ""}>Сработало</button>
-                        <button class="btn danger" id="desktopFail" type="button" ${feedbackLocked ? "disabled" : ""}>Не сработало</button>
-                    </div>
-                    <div class="mini-copy">Если этот вариант не подошёл, не возвращайся к ручному поиску. Просто открой следующий прокси или возьми запасной список ниже.</div>
-                </article>
-            </div>
-        `;
-
-        bindDesktopActions(proxy, hasLink, hasNextProxy);
-        bindFeedbackControls({
-            proxy,
-            platform: CONFIG.feedbackPlatforms.desktop,
-            okButtonId: "desktopOk",
-            failButtonId: "desktopFail",
-            successMessage: "Отзыв сохранён: основной вариант сработал",
-            failureMessage: "Отзыв сохранён: основной вариант не сработал"
-        });
-        trackBestProxyShown(proxy);
-    }
 
     function renderMobilePack() {
         dom.mobileSize.textContent = `Набор ${appState.mobilePack.length}`;
@@ -1476,166 +1626,35 @@
         if (!appState.mobilePack.length) {
             dom.mobilePanel.innerHTML = renderStateBlock(
                 "Набор для телефона пока пуст",
-                "Сейчас сервис не собрал достаточно данных для мобильного сценария."
+                "Сейчас сервис не собрал достаточно данных."
             );
             return;
         }
 
-        const topProxy = appState.mobilePack[0] || null;
-        const feedbackLocked = topProxy ? hasFeedback(topProxy.id, CONFIG.feedbackPlatforms.mobile) : true;
         const cardsHtml = appState.mobilePack
-            .map((proxy, index) => renderProxyMiniCard(proxy, `#${index + 1} ${proxy.host}:${proxy.port}`))
+            .map((proxy, index) => renderProxyMiniCard(proxy, index))
             .join("");
 
-        dom.mobilePanel.innerHTML = `
-            <div class="list">${cardsHtml}</div>
-            <div class="pack-actions">
-                <button class="btn primary" id="copyPackBtn" type="button">Скопировать tg:// набор</button>
-                <button class="btn secondary" id="copyWebPackBtn" type="button">Скопировать web-набор</button>
-            </div>
-            <div class="feedback-row">
-                <button class="btn safe" id="mobileOk" type="button" ${topProxy && !feedbackLocked ? "" : "disabled"}>На телефоне сработало</button>
-                <button class="btn danger" id="mobileFail" type="button" ${topProxy && !feedbackLocked ? "" : "disabled"}>На телефоне не сработало</button>
-            </div>
-            <div class="mini-copy">Набор отсортирован по приоритету: сначала более надёжные прокси, затем запасные.</div>
-        `;
-
-        bindMobileActions(appState.mobilePack);
-        if (topProxy) {
-            bindFeedbackControls({
-                proxy: topProxy,
-                platform: CONFIG.feedbackPlatforms.mobile,
-                okButtonId: "mobileOk",
-                failButtonId: "mobileFail",
-                successMessage: "Отзыв сохранён: мобильный набор сработал",
-                failureMessage: "Отзыв сохранён: мобильный набор не сработал"
-            });
-        }
-    }
-
-    function renderFallbackList() {
-        const fallbackProxies = appState.proxies.slice(1, CONFIG.limits.fallbackList + 1);
-        if (!fallbackProxies.length) {
-            dom.queuePanel.innerHTML = renderStateBlock(
-                "Запасных вариантов пока нет",
-                "Если появятся дополнительные кандидаты, они будут показаны здесь."
-            );
-            return;
-        }
-
-        dom.queuePanel.innerHTML = `<div class="list">${fallbackProxies.map((proxy, index) => renderProxyMiniCard(proxy, `#${index + 2} ${proxy.host}:${proxy.port}`)).join("")}</div>`;
+        dom.mobilePanel.innerHTML = `<div class="pack-list">${cardsHtml}</div>`;
     }
 
     function renderEmptyState() {
-        renderMetrics();
-        dom.desktopPanel.innerHTML = renderStateBlock(
-            "Сейчас нет рабочих прокси",
-            "Каталог пуст или источники ещё не отдали подходящие варианты."
-        );
+        renderHeroCta(HeroCta.ERROR, null);
         dom.mobilePanel.innerHTML = renderStateBlock(
             "Набор для телефона недоступен",
             "Когда появятся подходящие прокси, здесь соберётся готовый пакет ссылок."
         );
-        dom.queuePanel.innerHTML = renderStateBlock(
-            "Запасной список пуст",
-            "Сервис пока не получил кандидатов для fallback-сценария."
-        );
     }
 
-    function renderErrorState(message) {
-        renderMetricValue(dom.heroCount, "0");
-        renderMetricValue(dom.verifiedCount, "0");
-        renderMetricValue(dom.aliveCount, "0");
-        renderMetricValue(dom.checksCount, "0");
-        renderMetricValue(dom.deepRate, "0%");
-
-        const retryButtonHtml = `<button class="btn primary" id="retryBtn" type="button">Повторить загрузку</button>`;
-        dom.desktopPanel.innerHTML = renderStateBlock("Не удалось загрузить основной вариант", message, retryButtonHtml);
+    function renderErrorState() {
+        renderHeroCta(HeroCta.ERROR, null);
         dom.mobilePanel.innerHTML = renderStateBlock("Набор для телефона недоступен", "Пока нет ответа API, мобильный пакет собрать нельзя.");
-        dom.queuePanel.innerHTML = renderStateBlock("Запасные варианты недоступны", "Невозможно показать fallback-список, пока backend не ответит.");
-
-        const retryButton = document.getElementById("retryBtn");
-        if (retryButton) retryButton.addEventListener("click", loadCatalog);
     }
 
     function renderApp() {
-        renderMetrics();
-        renderBestProxy();
+        renderTrustLine(appState.proxies, appState.stats);
+        renderHeroCta(HeroCta.READY, getCurrentDesktopProxy());
         renderMobilePack();
-        renderFallbackList();
-    }
-
-    // Event handlers
-    function bindDesktopActions(proxy, hasLink, hasNextProxy) {
-        const copyButton = document.getElementById("copyCurrentBtn");
-        const nextButton = document.getElementById("nextBtn");
-
-        if (copyButton && hasLink) {
-            copyButton.addEventListener("click", async () => {
-                try {
-                    await copyToClipboard(proxy.telegramDeepLink || proxy.telegramWebLink);
-                    queueAnalyticsEvent("copy_proxy", {
-                        proxy_id: proxy.id,
-                        platform: "desktop",
-                        source_section: "desktop_hero",
-                        link_type: proxy.telegramDeepLink ? "tg_deep_link" : "web_link"
-                    });
-                    showToast("Ссылка скопирована");
-                } catch {
-                    showToast("Не удалось скопировать ссылку");
-                }
-            });
-        }
-
-        if (nextButton && hasNextProxy) {
-            nextButton.addEventListener("click", () => {
-                appState.currentDesktopIndex += 1;
-                renderBestProxy();
-                showToast(`Переключено на вариант ${appState.currentDesktopIndex + 1}`);
-                setStatus("Основной вариант не подошёл? Карточка переключена на следующий прокси.", false);
-            });
-        }
-    }
-
-    function bindMobileActions(proxies) {
-        const copyPackButton = document.getElementById("copyPackBtn");
-        const copyWebPackButton = document.getElementById("copyWebPackBtn");
-
-        if (copyPackButton) {
-            copyPackButton.addEventListener("click", async () => {
-                try {
-                    await copyToClipboard(buildMobilePackLinks(proxies, "telegramDeepLink"));
-                    queueAnalyticsEvent("copy_proxy", {
-                        platform: "mobile",
-                        source_section: "mobile_pack",
-                        link_type: "tg_deep_link_pack",
-                        pack_size: proxies.length,
-                        proxy_ids: proxies.map((proxy) => proxy.id)
-                    });
-                    showToast("tg:// набор скопирован");
-                } catch {
-                    showToast("Не удалось скопировать tg:// набор");
-                }
-            });
-        }
-
-        if (copyWebPackButton) {
-            copyWebPackButton.addEventListener("click", async () => {
-                try {
-                    await copyToClipboard(buildMobilePackLinks(proxies, "telegramWebLink"));
-                    queueAnalyticsEvent("copy_proxy", {
-                        platform: "mobile",
-                        source_section: "mobile_pack",
-                        link_type: "web_link_pack",
-                        pack_size: proxies.length,
-                        proxy_ids: proxies.map((proxy) => proxy.id)
-                    });
-                    showToast("web-набор скопирован");
-                } catch {
-                    showToast("Не удалось скопировать web-набор");
-                }
-            });
-        }
     }
 
     // Feedback
@@ -1672,17 +1691,25 @@
         appState.isLoading = true;
         appState.error = null;
         const loadId = nextLoadId();
-        setStatus("Загружаю лучший прокси, мобильный набор и запасные варианты...");
-        queueAnalyticsEvent("import_started", {
-            source_section: "landing_page",
-            load_id: loadId
-        });
+
+        renderHeroCta(HeroCta.LOADING);
+        setStatus("");
+
+        // Таймаут 3s: если API не ответил — показываем TIMEOUT состояние,
+        // но не прерываем запрос — он продолжается в фоне.
+        const timeoutId = setTimeout(() => {
+            if (appState.isLoading) renderHeroCta(HeroCta.TIMEOUT);
+        }, 3000);
+
+        queueAnalyticsEvent("import_started", { source_section: "landing_page", load_id: loadId });
 
         try {
             const [bestData, statsData] = await Promise.all([
                 fetchJson(CONFIG.endpoints.best),
                 fetchJson(CONFIG.endpoints.stats)
             ]);
+
+            clearTimeout(timeoutId);
 
             appState.proxies = Array.isArray(bestData)
                 ? bestData.map(normalizeProxy).filter((proxy) => proxy.host && proxy.port != null)
@@ -1700,24 +1727,29 @@
                 verified_count: appState.stats.verifiedCount
             });
 
+            queueAnalyticsEvent("import_finished", {
+                source_section: "landing_page",
+                load_id: loadId,
+                outcome: "success",
+                proxy_count: appState.proxies.length,
+                alive_count: appState.stats.aliveCount,
+                verified_count: appState.stats.verifiedCount
+            });
+
             if (!appState.proxies.length) {
                 renderEmptyState();
-                setStatus("Сейчас в каталоге нет прокси для показа. Проверь позже, когда обновятся источники и проверки.", true);
+                setStatus("Сейчас в каталоге нет прокси. Проверь позже.", true);
                 return;
             }
 
             renderApp();
 
-            const verifiedCount = appState.proxies.filter((proxy) => proxy.verificationStatus === "VERIFIED").length;
             const workingCount = getWorkingProxyCount();
-
             if (!workingCount) {
-                setStatus(`Загружено ${appState.proxies.length} вариантов, но сейчас нет свежего подтверждения, что они отвечают. Начинай с верхней карточки как с лучшей доступной попытки.`, true);
-                return;
+                setStatus("Нет свежего подтверждения, что прокси отвечают. Начни с верхней карточки.", true);
             }
-
-            setStatus(`Загружено ${appState.proxies.length} вариантов. Проверены Telegram: ${verifiedCount}. Живые сейчас: ${workingCount}. Начинай с главной карточки.`, false);
         } catch (error) {
+            clearTimeout(timeoutId);
             appState.isLoading = false;
             appState.error = error;
             queueAnalyticsEvent("import_finished", {
@@ -1726,15 +1758,13 @@
                 outcome: "error",
                 error_message: error?.message || "unknown_error"
             });
-            renderErrorState("Страница не получила данные от backend API.");
-            setStatus(error?.message || "Не удалось загрузить данные. Проверь доступность backend API.", true);
+            renderErrorState();
+            setStatus(error?.message || "Не удалось загрузить данные.", true);
             console.error(error);
         }
     }
 
-    // tg:// deep-link fallback — if Telegram isn't installed the browser does nothing.
-    // After a click on a tg:// link, if the window stays focused for 1.4s (app didn't open),
-    // show a hint pointing to the web-link button.
+    // analytics: десктопные <a href="tg://"> и web-ссылки трекаем через data-атрибут
     document.addEventListener("click", (e) => {
         const analyticsLink = e.target.closest("a[data-analytics-event='open-telegram-link']");
         if (analyticsLink && !analyticsLink.classList.contains("disabled")) {
@@ -1745,15 +1775,6 @@
                 link_type: analyticsLink.dataset.linkType || "unknown"
             });
         }
-
-        const link = e.target.closest("a[href^='tg://']");
-        if (!link || link.classList.contains("disabled")) return;
-
-        const timer = setTimeout(() => {
-            showToast("Telegram не открылся — попробуй «Открыть как ссылку» в браузере.");
-        }, 1400);
-
-        window.addEventListener("blur", () => clearTimeout(timer), { once: true });
     });
 
     // Header scroll shadow
