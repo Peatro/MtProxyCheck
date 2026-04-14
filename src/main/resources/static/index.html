@@ -1718,6 +1718,14 @@
             appState.currentDesktopIndex = 0;
             appState.mobilePack = buildMobilePack(appState.proxies);
             appState.isLoading = false;
+            queueAnalyticsEvent("import_finished", {
+                source_section: "landing_page",
+                load_id: loadId,
+                outcome: "success",
+                proxy_count: appState.proxies.length,
+                alive_count: appState.stats.aliveCount,
+                verified_count: appState.stats.verifiedCount
+            });
 
             queueAnalyticsEvent("import_finished", {
                 source_section: "landing_page",
