@@ -135,6 +135,33 @@
         }
         .logo em { font-style: normal; color: var(--blue); }
         .header-right { display: flex; align-items: center; gap: 12px; }
+
+        /* ── TELEGRAM CHANNEL BUTTON ─────────────────────────────── */
+        .tg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px 6px 10px;
+            border-radius: 100000px;
+            background: rgba(42, 171, 238, 0.10);
+            border: 1px solid rgba(42, 171, 238, 0.30);
+            color: #1388c7;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background .18s, border-color .18s, color .18s;
+        }
+        .tg-btn:hover {
+            background: rgba(42, 171, 238, 0.18);
+            border-color: rgba(42, 171, 238, 0.55);
+            color: #0f6fa3;
+        }
+        .tg-btn svg {
+            flex-shrink: 0;
+        }
+
         .badge-pill {
             font-size: 11px;
             font-weight: 600;
@@ -814,6 +841,12 @@
         <div class="header-inner">
             <div class="logo">Mt<em>Proxy</em></div>
             <div class="header-right">
+                <a class="tg-btn" href="https://t.me/mtproxycheck" target="_blank" rel="noopener noreferrer" aria-label="Наш Telegram-канал">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M21.805 2.906a1.5 1.5 0 0 0-1.53-.22L2.62 9.74a1.5 1.5 0 0 0 .093 2.793l4.013 1.336 1.56 5.027a1.5 1.5 0 0 0 2.484.6l2.18-2.18 3.95 2.963a1.5 1.5 0 0 0 2.363-1.006l2.25-14.25a1.5 1.5 0 0 0-.708-1.117ZM10 15.5l-.94 2.82-.94-3.04 7.5-7.5L10 15.5Z" fill="currentColor"/>
+                    </svg>
+                    наш канал
+                </a>
                 <span class="badge-pill">Public beta</span>
             </div>
         </div>
