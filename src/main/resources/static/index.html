@@ -187,6 +187,14 @@
             text-align: center;
         }
         .hero h1 { max-width: 700px; }
+        .hero h2 {
+            font-size: 20px;
+            font-weight: 400;
+            color: #666;
+            letter-spacing: 0;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
         .hero .status-bar { text-align: left; width: 100%; max-width: 560px; }
         .hero-eyebrow {
             display: inline-flex;
@@ -577,6 +585,33 @@
             gap: 8px;
         }
 
+        /* ── SUBSCRIBE CTA (shown after worked feedback) ─────────── */
+        .subscribe-cta {
+            display: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: var(--blue-dim);
+            border: 1px solid rgba(0, 82, 255, 0.18);
+            gap: 12px;
+        }
+        .subscribe-cta.is-visible {
+            display: grid;
+        }
+        .subscribe-cta .btn {
+            background: #1a1a1a;
+            color: #ffffff;
+            border: none;
+        }
+        .subscribe-cta .btn:hover:not(:disabled) {
+            background: #333333;
+            color: #ffffff;
+        }
+        .subscribe-cta__text {
+            font-size: 14px;
+            line-height: 1.55;
+            color: var(--ink-2);
+        }
+
         /* ── STATE BLOCK (JS-rendered) ───────────────────────────── */
         .state {
             display: grid;
@@ -847,7 +882,6 @@
                     </svg>
                     наш канал
                 </a>
-                <span class="badge-pill">Public beta</span>
             </div>
         </div>
     </div>
@@ -859,7 +893,8 @@
 <section class="hero">
     <div class="container">
         <div class="hero-eyebrow">MTProto Proxy Catalog</div>
-        <h1>Открой Telegram прямо сейчас</h1>
+        <h1>Бесплатные MTProto прокси</h1>
+        <h2>нажми и подключи в один клик</h2>
         <div id="trustLine" class="trust-line">
             <span class="skel" style="height:14px;width:220px;border-radius:4px" aria-hidden="true"></span>
         </div>
@@ -876,7 +911,6 @@
     <div class="container">
         <div class="section-head">
             <div>
-                <div class="kicker">Для телефона</div>
                 <h2>Готовый набор ссылок</h2>
                 <p>Нажимай по одной — каждая добавит прокси в Telegram. Пробуй пока не найдёшь рабочий.</p>
             </div>
@@ -1515,7 +1549,12 @@
                 <button class="btn danger" id="desktopFail" type="button" ${feedbackLocked ? "disabled" : ""}>Не сработало</button>
             </div>
             ${hasNextProxy ? `<button class="btn ghost btn-block" id="nextBtn" type="button">Попробовать следующий вариант</button>` : ""}
+            <div class="subscribe-cta" id="subscribeCta">
+                <p class="subscribe-cta__text">Прокси живут 1–3 дня. Подпишись на канал — каждый день свежие рабочие варианты автоматически</p>
+                <a class="btn secondary btn-block" href="https://t.me/mtproxycheck" target="_blank" rel="noreferrer">Подписаться</a>
+            </div>
         `;
+        trackBestProxyShown(proxy);
 
         // mobile combo
         if (mobile) {
@@ -1562,8 +1601,6 @@
             successMessage:  "Отзыв сохранён: сработало",
             failureMessage:  "Отзыв сохранён: не сработало"
         });
-
-        trackBestProxyShown(proxy);
     }
 
     function handleMobileCtaClick(proxy) {
@@ -1576,6 +1613,9 @@
             source_section: "hero",
             link_type: proxy.telegramDeepLink ? "tg_deep_link" : "web_link"
         });
+
+        const subscribeCta = document.getElementById("subscribeCta");
+        if (subscribeCta) subscribeCta.classList.add("is-visible");
 
         // копируем в фоне — страховка на случай если tg:// не откроется
         if (navigator.clipboard?.writeText) {
@@ -1702,12 +1742,14 @@
                 buttons.forEach((button) => { button.disabled = true; });
                 await sendFeedback(proxy.id, result, platform);
                 markFeedbackSubmitted(proxy.id, platform);
-                queueAnalyticsEvent("feedback_sent", {
+                const isWorked = result === CONFIG.feedbackResults.worked;
+                const eventProps = {
                     proxy_id: proxy.id,
                     platform: String(platform || "").toLowerCase(),
-                    result: String(result || "").toLowerCase(),
                     source_section: platform === CONFIG.feedbackPlatforms.mobile ? "mobile_pack" : "desktop_hero"
-                });
+                };
+                queueAnalyticsEvent(isWorked ? "worked_clicked" : "failed_clicked", eventProps);
+                queueAnalyticsEvent("feedback_sent", { ...eventProps, result: String(result || "").toLowerCase() });
                 showToast(result === CONFIG.feedbackResults.worked ? successMessage : failureMessage);
             } catch (error) {
                 if (!feedbackAlreadySent) buttons.forEach((button) => { button.disabled = false; });
@@ -1801,12 +1843,17 @@
     document.addEventListener("click", (e) => {
         const analyticsLink = e.target.closest("a[data-analytics-event='open-telegram-link']");
         if (analyticsLink && !analyticsLink.classList.contains("disabled")) {
+            const sourceSection = analyticsLink.dataset.sourceSection || "unknown";
             queueAnalyticsEvent("open_telegram_link", {
                 proxy_id: Number(analyticsLink.dataset.proxyId || 0) || null,
                 platform: analyticsLink.dataset.platform || "unknown",
-                source_section: analyticsLink.dataset.sourceSection || "unknown",
+                source_section: sourceSection,
                 link_type: analyticsLink.dataset.linkType || "unknown"
             });
+            if (sourceSection === "hero") {
+                const subscribeCta = document.getElementById("subscribeCta");
+                if (subscribeCta) subscribeCta.classList.add("is-visible");
+            }
         }
     });
 
