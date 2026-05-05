@@ -8,7 +8,7 @@ COPY src ./src
 
 RUN gradle --no-daemon bootJar
 
-FROM public.ecr.aws/amazoncorretto/amazoncorretto:21-al2023-headless
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
