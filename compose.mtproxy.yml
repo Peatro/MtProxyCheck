@@ -18,9 +18,8 @@ services:
       - mtproxycheck_net
 
   mtproxy-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/peatro/mtproxycheck:latest
+    pull_policy: always          # всегда тянуть свежий latest при up
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
