@@ -1,5 +1,6 @@
 package com.peatroxd.mtprototest.checker.config;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -18,5 +19,12 @@ public class CheckerProperties {
     private long deadRetryAfterMs = 21_600_000;
     private long archiveDeadAfterMs = 604_800_000;
     private int archiveMinConsecutiveFailures = 8;
+    private Socks socks = new Socks();
 
+    @Data
+    public static class Socks {
+        private boolean enabled = false;
+        private String host = "127.0.0.1";
+        private int port = 1080;
+    }
 }
