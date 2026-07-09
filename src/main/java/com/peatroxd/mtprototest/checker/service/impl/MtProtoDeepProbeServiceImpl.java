@@ -39,9 +39,12 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final ProxySecretParser proxySecretParser;
+    private final ProbeSocketFactory socketFactory;
 
-    public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser) {
+    public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser,
+                                       ProbeSocketFactory socketFactory) {
         this.proxySecretParser = proxySecretParser;
+        this.socketFactory = socketFactory;
     }
 
     @Override
@@ -56,7 +59,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
         Instant startedAt = Instant.now();
 
-        try (Socket socket = new Socket()) {
+        try (Socket socket = socketFactory.create()) {
             socket.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), CONNECT_TIMEOUT_MS);
             socket.setSoTimeout(READ_TIMEOUT_MS);
 

@@ -58,6 +58,10 @@ app:
       submission-window-size: ${APP_CHECKER_EXECUTOR_SUBMISSION_WINDOW_SIZE:24}
       await-termination-seconds: ${APP_CHECKER_EXECUTOR_AWAIT_TERMINATION_SECONDS:30}
       thread-name-prefix: ${APP_CHECKER_EXECUTOR_THREAD_NAME_PREFIX:proxy-checker-}
+    socks:
+      enabled: ${CHECKER_SOCKS_ENABLED:false}
+      host: ${CHECKER_SOCKS_HOST:127.0.0.1}
+      port: ${CHECKER_SOCKS_PORT:1080}
 
   feedback:
     dedupe-window-minutes: ${APP_FEEDBACK_DEDUPE_WINDOW_MINUTES:60}

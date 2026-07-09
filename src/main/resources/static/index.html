@@ -1258,6 +1258,8 @@
 
             window.posthog.init(config.posthogApiKey, {
                 api_host: config.posthogHost,
+                capture_dead_clicks: false,
+                strict_script_versioning: true,
                 autocapture: false,
                 capture_pageview: false
             });

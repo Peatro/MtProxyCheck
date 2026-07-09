@@ -1,7 +1,7 @@
 package com.peatroxd.mtprototest.checker.service.impl;
 
-import com.peatroxd.mtprototest.checker.config.CheckerProperties;
 import com.peatroxd.mtprototest.checker.config.CheckerExecutorProperties;
+import com.peatroxd.mtprototest.checker.config.CheckerProperties;
 import com.peatroxd.mtprototest.checker.enums.ProxyCheckType;
 import com.peatroxd.mtprototest.checker.model.ProxyBatchCheckSummary;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckExecution;
@@ -21,8 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -119,7 +121,12 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
             String selectionLabel,
             int deepProbeLimit
     ) {
+        if (!socksTunnelHealthy()) {
+            log.error("SOCKS tunnel unreachable — skipping batch '{}' to avoid false DEAD marks", selectionLabel);
+            return ProxyBatchCheckSummary.empty();
+        }
         ProxyBatchCheckSummary summary = checkProxies(proxies, selectionLabel, deepProbeLimit);
+
         if (summary.totalChecked() > 0) {
             publicCatalogCacheService.evictPublicCatalogViews();
         }
@@ -250,6 +257,17 @@ public class ProxyBatchCheckServiceImpl implements ProxyBatchCheckService {
             return Math.max(1, Math.min(configured, effectiveConcurrency));
         }
         return effectiveConcurrency;
+    }
+
+    private boolean socksTunnelHealthy() {
+        var socks = checkerProperties.getSocks();
+        if (!socks.isEnabled()) return true;
+        try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress(socks.getHost(), socks.getPort()), 2000);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
 }
