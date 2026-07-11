@@ -14,10 +14,12 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.EOFException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
@@ -37,6 +39,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private static final int RES_PQ_CONSTRUCTOR_ID = 0x05162463;
     private static final int REQ_PQ_MULTI_CONSTRUCTOR_ID = 0xBE7E8EF1;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int POST_HANDSHAKE_HOLD_MS = 1500;
 
     private final ProxySecretParser proxySecretParser;
     private final ProbeSocketFactory socketFactory;
@@ -95,6 +98,25 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                         MtProtoProbeFailureCode.RES_PQ_NOT_RECEIVED,
                         "resPQ was not received from proxy"
                 );
+            }
+
+            try {
+                socket.setSoTimeout(POST_HANDSHAKE_HOLD_MS);   // напр. 1500 мс
+                int next = socket.getInputStream().read();
+                if (next == -1) {
+                    // сервер/ТСПУ закрыл соединение после resPQ — для юзера прокси НЕ работает
+                    return MtProtoDeepProbeResult.failure(
+                            MtProtoProbeFailureCode.TRANSPORT_ERROR,
+                            "Connection closed after resPQ (likely DPI reset)");
+                }
+                // пришли ещё байты — соединение живёт, DPI не оборвал; это хороший знак
+            } catch (SocketTimeoutException e) {
+                // таймаут БЕЗ разрыва = соединение держится, сервер просто молчит — это ОК (жив)
+            } catch (IOException e) {
+                // RST/сетевой обрыв в окне досмотра — трактуем как блокировку
+                return MtProtoDeepProbeResult.failure(
+                        MtProtoProbeFailureCode.TRANSPORT_ERROR,
+                        "IO error after resPQ (likely DPI reset): " + e.getMessage());
             }
 
             long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
