@@ -50,12 +50,13 @@ public class ProxySecretParserImpl implements ProxySecretParser {
         }
 
         if (rawSecret.length >= 17 && rawSecret[0] == FAKE_TLS_PREFIX) {
+            // keyBytes = 16-byte base key + domain (UTF-8), ee-prefix stripped; split in the probe.
             return new ProxySecretDetails(
                     ProxySecretType.FAKE_TLS,
                     normalizedHex,
-                    null,
-                    false,
-                    "ee-prefixed fake TLS secrets are recognized but not supported by deep probe yet"
+                    slice(rawSecret, 1, rawSecret.length),
+                    true,
+                    "ee-prefixed fake TLS secret"
             );
         }
 

@@ -47,6 +47,7 @@ app:
     fixed-delay-ms: ${APP_CHECKER_FIXED_DELAY_MS:300000}
     batch-size: ${APP_CHECKER_BATCH_SIZE:200}
     deep-probe-limit: ${APP_CHECKER_DEEP_PROBE_LIMIT:20}
+    read-timeout-ms: ${APP_CHECKER_READ_TIMEOUT_MS:4000}
     alive-quick-ok-recheck-after-ms: ${APP_CHECKER_ALIVE_QUICK_OK_RECHECK_AFTER_MS:300000}
     alive-verified-recheck-after-ms: ${APP_CHECKER_ALIVE_VERIFIED_RECHECK_AFTER_MS:1800000}
     dead-retry-after-ms: ${APP_CHECKER_DEAD_RETRY_AFTER_MS:21600000}
