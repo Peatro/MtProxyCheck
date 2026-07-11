@@ -240,11 +240,11 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
         // ponytail DEBUG-NODE 2 (timestamp XOR, byte order): last 4 bytes XOR unix time, big-endian.
         // If proxies answer but get flagged dead, try little-endian or drop the XOR.
-        int now = (int) (System.currentTimeMillis() / 1000L);
-        digest[28] ^= (byte) (now >>> 24);
-        digest[29] ^= (byte) (now >>> 16);
-        digest[30] ^= (byte) (now >>> 8);
-        digest[31] ^= (byte) now;
+        // int now = (int) (System.currentTimeMillis() / 1000L);
+        // digest[28] ^= (byte) (now >>> 24);
+        // digest[29] ^= (byte) (now >>> 16);
+        // digest[30] ^= (byte) (now >>> 8);
+        // digest[31] ^= (byte) now;
 
         System.arraycopy(digest, 0, record, 11, 32);  // digest -> random (offset 11)
         return record;
