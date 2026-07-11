@@ -59,9 +59,9 @@ app:
       await-termination-seconds: ${APP_CHECKER_EXECUTOR_AWAIT_TERMINATION_SECONDS:30}
       thread-name-prefix: ${APP_CHECKER_EXECUTOR_THREAD_NAME_PREFIX:proxy-checker-}
     socks:
-      enabled: ${CHECKER_SOCKS_ENABLED:false}
-      host: ${CHECKER_SOCKS_HOST:127.0.0.1}
-      port: ${CHECKER_SOCKS_PORT:1080}
+      enabled: ${APP_CHECKER_SOCKS_ENABLED:false}
+      host: ${APP_CHECKER_SOCKS_HOST:127.0.0.1}
+      port: ${APP_CHECKER_SOCKS_PORT:1080}
 
   feedback:
     dedupe-window-minutes: ${APP_FEEDBACK_DEDUPE_WINDOW_MINUTES:60}
@@ -85,7 +85,7 @@ app:
     posthog:
       enabled: ${APP_ANALYTICS_POSTHOG_ENABLED:false}
       api-key: ${APP_ANALYTICS_POSTHOG_API_KEY:}
-      host: ${APP_ANALYTICS_POSTHOG_HOST:https://us.i.posthog.com}
+      host: ${APP_ANALYTICS_POSTHOG_HOST:https://e.mtproxycheck.ru}
 
 proxy:
   ranking:
