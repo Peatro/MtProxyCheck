@@ -147,3 +147,6 @@ proxy:
         url: https://raw.githubusercontent.com/ALIILAPRO/MTProtoProxy/main/mtproto.txt
         format: TELEGRAM_TEXT
         enabled: true
+logging:
+  level:
+    com.peatroxd.mtprototest.checker.service.impl.MtProtoDeepProbeServiceImpl: DEBUG
