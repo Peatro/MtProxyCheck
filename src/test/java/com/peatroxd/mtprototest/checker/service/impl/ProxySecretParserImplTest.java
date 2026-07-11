@@ -28,12 +28,14 @@ class ProxySecretParserImplTest {
     }
 
     @Test
-    void shouldClassifyEeSecretAsUnsupported() {
-        var details = parser.parse("ee00112233445566778899aabbccddeeff");
+    void shouldParseEeSecretWithKeyAndDomain() {
+        // ee + 16-byte key + domain "google.com" (UTF-8 hex)
+        var details = parser.parse("ee00112233445566778899aabbccddeeff676f6f676c652e636f6d");
 
-        assertThat(details.supported()).isFalse();
+        assertThat(details.supported()).isTrue();
         assertThat(details.type()).isEqualTo(ProxySecretType.FAKE_TLS);
-        assertThat(details.message()).contains("not supported");
+        // keyBytes = 16-byte key + domain, ee stripped
+        assertThat(details.keyBytes()).hasSize(16 + "google.com".length());
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.peatroxd.mtprototest.checker.model.MtProtoDeepProbeResult;
 import com.peatroxd.mtprototest.checker.model.MtProtoProbeFailureCode;
 import com.peatroxd.mtprototest.checker.model.ProxySecretDetails;
 import com.peatroxd.mtprototest.checker.model.ProxySecretType;
+import com.peatroxd.mtprototest.checker.config.CheckerProperties;
 import com.peatroxd.mtprototest.checker.service.MtProtoDeepProbeService;
 import com.peatroxd.mtprototest.checker.service.ProxySecretParser;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
@@ -11,8 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +25,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -32,7 +36,6 @@ import java.time.Instant;
 public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
     private static final int CONNECT_TIMEOUT_MS = 2_500;
-    private static final int READ_TIMEOUT_MS = 4_000;
     private static final int MAX_PACKET_LENGTH = 4_096;
     private static final int MT_PROXY_DC_ID = 2;
     private static final byte PADDED_INTERMEDIATE_PREFIX = (byte) 0xDD;
@@ -43,16 +46,24 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
     private final ProxySecretParser proxySecretParser;
     private final ProbeSocketFactory socketFactory;
+    private final int readTimeoutMs;
 
     public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser,
-                                       ProbeSocketFactory socketFactory) {
+                                       ProbeSocketFactory socketFactory,
+                                       CheckerProperties checkerProperties) {
         this.proxySecretParser = proxySecretParser;
         this.socketFactory = socketFactory;
+        this.readTimeoutMs = checkerProperties.getReadTimeoutMs();
     }
 
     @Override
     public MtProtoDeepProbeResult probe(ProxyEntity proxy) {
         ProxySecretDetails secretDetails = proxySecretParser.parse(proxy.getSecret());
+
+        if (secretDetails.type() == ProxySecretType.FAKE_TLS) {
+            return probeFakeTls(proxy, secretDetails);
+        }
+
         if (!secretDetails.supported()) {
             MtProtoProbeFailureCode failureCode = secretDetails.type() == ProxySecretType.FAKE_TLS
                     ? MtProtoProbeFailureCode.UNSUPPORTED_SECRET_FORMAT
@@ -64,7 +75,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
         try (Socket socket = socketFactory.create()) {
             socket.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), CONNECT_TIMEOUT_MS);
-            socket.setSoTimeout(READ_TIMEOUT_MS);
+            socket.setSoTimeout(readTimeoutMs);
 
             CryptoSession session = openObfuscatedSession(socket, secretDetails.keyBytes());
             byte[] nonce = randomBytes(16);
@@ -131,6 +142,135 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             log.debug("Deep MTProto probe failed for proxyId={}: {}", proxy.getId(), e.getMessage(), e);
             return MtProtoDeepProbeResult.failure(failureCode, e.getMessage());
         }
+    }
+
+    private MtProtoDeepProbeResult probeFakeTls(ProxyEntity proxy, ProxySecretDetails secretDetails) {
+        byte[] keyAndDomain = secretDetails.keyBytes();
+        if (keyAndDomain == null || keyAndDomain.length < 17) {
+            return MtProtoDeepProbeResult.failure(
+                    MtProtoProbeFailureCode.INVALID_SECRET, "ee-secret too short");
+        }
+        byte[] key = slice(keyAndDomain, 0, 16);
+        String domain = new String(slice(keyAndDomain, 16, keyAndDomain.length), StandardCharsets.UTF_8);
+
+        Instant startedAt = Instant.now();
+        try (Socket socket = socketFactory.create()) {
+            socket.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), CONNECT_TIMEOUT_MS);
+            socket.setSoTimeout(readTimeoutMs);
+
+            writeFully(socket.getOutputStream(), buildFakeTlsClientHello(key, domain));
+
+            byte[] header = readFully(socket.getInputStream(), 5);
+            long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
+
+            int recordType = header[0] & 0xFF;
+            int recordLen = ((header[3] & 0xFF) << 8) | (header[4] & 0xFF);
+
+            log.debug("FakeTLS proxyId={} host={} -> type=0x{} len={} latency={}ms",
+                    proxy.getId(), proxy.getHost(),
+                    Integer.toHexString(recordType), recordLen, latencyMs);
+
+            // Live fake-TLS MTProxy answers with a TLS handshake record (ServerHello). Wrong HMAC ->
+            // proxy fronts to the real site, so we'd see something other than a plausible handshake.
+            if (recordType != 0x16) {
+                return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
+                        "Not TLS handshake: type=0x" + Integer.toHexString(recordType));
+            }
+            if (recordLen <= 0 || recordLen > 16384) {
+                return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
+                        "Implausible ServerHello length: " + recordLen);
+            }
+
+            readFully(socket.getInputStream(), recordLen); // drain ServerHello body
+            // ponytail: structure + latency = "alive" signal. Phase 2 (server-digest HMAC verify)
+            // deferred until we've seen real responses from the 15 labelled proxies.
+            return MtProtoDeepProbeResult.success(latencyMs);
+
+        } catch (SocketTimeoutException e) {
+            return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.IO_ERROR,
+                    "No ServerHello within timeout (likely DPI throttle/block)");
+        } catch (EOFException e) {
+            return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
+                    "Connection closed before ServerHello");
+        } catch (Exception e) {
+            return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.CONNECT_ERROR, e.getMessage());
+        }
+    }
+
+    private byte[] buildFakeTlsClientHello(byte[] key, String domain) throws Exception {
+        ByteArrayOutputStream hs = new ByteArrayOutputStream();
+        hs.write(new byte[]{0x03, 0x03});            // legacy client version
+        hs.write(new byte[32]);                       // random placeholder (digest goes here)
+        hs.write(32);                                 // session_id length
+        hs.write(randomBytes(32));                    // session_id
+        byte[] ciphers = {0x13, 0x01, 0x13, 0x02, 0x13, 0x03, (byte) 0xc0, 0x2f, 0x00, (byte) 0xff};
+        hs.write((ciphers.length >> 8) & 0xFF);
+        hs.write(ciphers.length & 0xFF);
+        hs.write(ciphers);
+        hs.write(1);
+        hs.write(0);                                  // compression: null
+        byte[] ext = buildExtensions(domain);
+        hs.write((ext.length >> 8) & 0xFF);
+        hs.write(ext.length & 0xFF);
+        hs.write(ext);
+        byte[] body = hs.toByteArray();
+
+        ByteArrayOutputStream msg = new ByteArrayOutputStream();
+        msg.write(0x01);                              // handshake type: client_hello
+        msg.write((body.length >> 16) & 0xFF);
+        msg.write((body.length >> 8) & 0xFF);
+        msg.write(body.length & 0xFF);
+        msg.write(body);
+        byte[] handshake = msg.toByteArray();
+
+        ByteArrayOutputStream rec = new ByteArrayOutputStream();
+        rec.write(0x16);
+        rec.write(0x03);
+        rec.write(0x01);                              // record: handshake, legacy version
+        rec.write((handshake.length >> 8) & 0xFF);
+        rec.write(handshake.length & 0xFF);
+        rec.write(handshake);
+        byte[] record = rec.toByteArray();
+
+        // ponytail DEBUG-NODE 1 (HMAC scope): digest over the WHOLE record with zeroed random at
+        // offset 11. If nothing matches on ground truth, first thing to try is a different scope.
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(key, "HmacSHA256"));
+        byte[] digest = mac.doFinal(record);
+
+        // ponytail DEBUG-NODE 2 (timestamp XOR, byte order): last 4 bytes XOR unix time, big-endian.
+        // If proxies answer but get flagged dead, try little-endian or drop the XOR.
+        int now = (int) (System.currentTimeMillis() / 1000L);
+        digest[28] ^= (byte) (now >>> 24);
+        digest[29] ^= (byte) (now >>> 16);
+        digest[30] ^= (byte) (now >>> 8);
+        digest[31] ^= (byte) now;
+
+        System.arraycopy(digest, 0, record, 11, 32);  // digest -> random (offset 11)
+        return record;
+    }
+
+    private byte[] buildExtensions(String domain) throws IOException {
+        ByteArrayOutputStream ext = new ByteArrayOutputStream();
+        byte[] host = domain.getBytes(StandardCharsets.US_ASCII);
+        int nameLen = host.length;
+        // SNI (0x0000)
+        ext.write(0x00);
+        ext.write(0x00);
+        int extData = nameLen + 5, listLen = nameLen + 3;
+        ext.write((extData >> 8) & 0xFF);
+        ext.write(extData & 0xFF);
+        ext.write((listLen >> 8) & 0xFF);
+        ext.write(listLen & 0xFF);
+        ext.write(0x00);                              // host_name
+        ext.write((nameLen >> 8) & 0xFF);
+        ext.write(nameLen & 0xFF);
+        ext.write(host);
+        // supported_versions (0x002b) -> TLS 1.3
+        ext.write(new byte[]{0x00, 0x2b, 0x00, 0x03, 0x02, 0x03, 0x04});
+        // supported_groups (0x000a) -> x25519
+        ext.write(new byte[]{0x00, 0x0a, 0x00, 0x04, 0x00, 0x02, 0x00, 0x1d});
+        return ext.toByteArray();
     }
 
     private CryptoSession openObfuscatedSession(Socket socket, byte[] secret) throws Exception {
