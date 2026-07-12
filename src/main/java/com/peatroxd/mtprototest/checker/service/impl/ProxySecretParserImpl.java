@@ -50,14 +50,22 @@ public class ProxySecretParserImpl implements ProxySecretParser {
         }
 
         if (rawSecret.length >= 17 && rawSecret[0] == FAKE_TLS_PREFIX) {
-            // keyBytes = 16-byte base key + domain (UTF-8), ee-prefix stripped; split in the probe.
+            byte[] keyAndDomain = slice(rawSecret, 1, rawSecret.length);
+
+            // Мусорный секрет: "ключ" начинается с байтов TLS ClientHello (0x16 0x03 0x01).
+            // Настоящий ключ прокси — случайные 16 байт, не может систематически быть TLS-заголовком.
+            if (keyAndDomain.length >= 3
+                    && (keyAndDomain[0] & 0xFF) == 0x16
+                    && (keyAndDomain[1] & 0xFF) == 0x03
+                    && (keyAndDomain[2] & 0xFF) == 0x01) {
+                return new ProxySecretDetails(
+                        ProxySecretType.FAKE_TLS, normalizedHex, null, false,
+                        "Malformed ee-secret (embedded TLS ClientHello bytes, not a real key)");
+            }
+
             return new ProxySecretDetails(
-                    ProxySecretType.FAKE_TLS,
-                    normalizedHex,
-                    slice(rawSecret, 1, rawSecret.length),
-                    true,
-                    "ee-prefixed fake TLS secret"
-            );
+                    ProxySecretType.FAKE_TLS, normalizedHex, keyAndDomain, true,
+                    "ee-prefixed fake TLS secret");
         }
 
         return new ProxySecretDetails(
