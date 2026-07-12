@@ -170,6 +170,12 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                     proxy.getId(), proxy.getHost(),
                     Integer.toHexString(recordType), recordLen, latencyMs);
 
+            if (recordType == 0x15) {
+                byte[] alert = readFully(socket.getInputStream(), 2);
+                log.debug("FakeTLS ALERT proxyId={} level={} desc={}", proxy.getId(),
+                    alert[0] & 0xFF, alert[1] & 0xFF);
+            }
+            
             // Live fake-TLS MTProxy answers with a TLS handshake record (ServerHello). Wrong HMAC ->
             // proxy fronts to the real site, so we'd see something other than a plausible handshake.
             if (recordType != 0x16) {
