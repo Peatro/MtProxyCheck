@@ -26,8 +26,10 @@ import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.security.interfaces.XECPublicKey;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -122,7 +124,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                 }
                 // пришли ещё байты — соединение живёт, DPI не оборвал; это хороший знак
             } catch (SocketTimeoutException e) {
-                // таймаут БЕЗ разрыва = соединение держится, сервер просто молчит — это ОК (жив)
+                // тайм-аут БЕЗ разрыва = соединение держится, сервер просто молчит — это ОК (жив)
             } catch (IOException e) {
                 // RST/сетевой обрыв в окне досмотра — трактуем как блокировку
                 return MtProtoDeepProbeResult.failure(
@@ -139,6 +141,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                     ? MtProtoProbeFailureCode.IO_ERROR
                     : MtProtoProbeFailureCode.CONNECT_ERROR;
 
+
             log.debug("Deep MTProto probe failed for proxyId={}: {}", proxy.getId(), e.getMessage(), e);
             return MtProtoDeepProbeResult.failure(failureCode, e.getMessage());
         }
@@ -150,6 +153,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             return MtProtoDeepProbeResult.failure(
                     MtProtoProbeFailureCode.INVALID_SECRET, "ee-secret too short");
         }
+
         byte[] key = slice(keyAndDomain, 0, 16);
         String domain = new String(slice(keyAndDomain, 16, keyAndDomain.length), StandardCharsets.UTF_8);
 
@@ -166,6 +170,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             int recordType = header[0] & 0xFF;
             int recordLen = ((header[3] & 0xFF) << 8) | (header[4] & 0xFF);
 
+
+
             log.debug("FakeTLS proxyId={} host={} -> type=0x{} len={} latency={}ms",
                     proxy.getId(), proxy.getHost(),
                     Integer.toHexString(recordType), recordLen, latencyMs);
@@ -173,9 +179,9 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             if (recordType == 0x15) {
                 byte[] alert = readFully(socket.getInputStream(), 2);
                 log.debug("FakeTLS ALERT proxyId={} level={} desc={}", proxy.getId(),
-                    alert[0] & 0xFF, alert[1] & 0xFF);
+                        alert[0] & 0xFF, alert[1] & 0xFF);
             }
-            
+
             // Live fake-TLS MTProxy answers with a TLS handshake record (ServerHello). Wrong HMAC ->
             // proxy fronts to the real site, so we'd see something other than a plausible handshake.
             if (recordType != 0x16) {
@@ -203,80 +209,129 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
         }
     }
 
-    private byte[] buildFakeTlsClientHello(byte[] key, String domain) throws Exception {
-        ByteArrayOutputStream hs = new ByteArrayOutputStream();
-        hs.write(new byte[]{0x03, 0x03});            // legacy client version
-        hs.write(new byte[32]);                       // random placeholder (digest goes here)
-        hs.write(32);                                 // session_id length
-        hs.write(randomBytes(32));                    // session_id
-        byte[] ciphers = {0x13, 0x01, 0x13, 0x02, 0x13, 0x03, (byte) 0xc0, 0x2f, 0x00, (byte) 0xff};
-        hs.write((ciphers.length >> 8) & 0xFF);
-        hs.write(ciphers.length & 0xFF);
-        hs.write(ciphers);
-        hs.write(1);
-        hs.write(0);                                  // compression: null
+    private byte[] buildFakeTlsClientHello(byte[] secret, String domain) throws Exception {
+        // --- собираем handshake body ---
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        body.write(new byte[]{0x03, 0x03});          // legacy_version TLS 1.2
+        body.write(new byte[32]);                     // random — плейсхолдер (нули), digest сюда позже
+        body.write(32);                               // session_id length
+        body.write(randomBytes(32));                  // session_id
+        byte[] ciphers = {
+                (byte)0x13,(byte)0x01, (byte)0x13,(byte)0x02, (byte)0x13,(byte)0x03,
+                (byte)0xc0,(byte)0x2b, (byte)0xc0,(byte)0x2f, (byte)0xc0,(byte)0x2c, (byte)0xc0,(byte)0x30,
+                (byte)0xcc,(byte)0xa9, (byte)0xcc,(byte)0xa8, (byte)0xc0,(byte)0x13, (byte)0xc0,(byte)0x14,
+                (byte)0x00,(byte)0x9c, (byte)0x00,(byte)0x9d, (byte)0x00,(byte)0x2f, (byte)0x00,(byte)0x35
+        };
+        writeU16(body, ciphers.length);
+        body.write(ciphers);
+        body.write(1); body.write(0);                 // compression: null
+
+        // --- extensions (с key_share + padding до нужной длины) ---
         byte[] ext = buildExtensions(domain);
-        hs.write((ext.length >> 8) & 0xFF);
-        hs.write(ext.length & 0xFF);
-        hs.write(ext);
-        byte[] body = hs.toByteArray();
+        writeU16(body, ext.length);
+        body.write(ext);
 
-        ByteArrayOutputStream msg = new ByteArrayOutputStream();
-        msg.write(0x01);                              // handshake type: client_hello
-        msg.write((body.length >> 16) & 0xFF);
-        msg.write((body.length >> 8) & 0xFF);
-        msg.write(body.length & 0xFF);
-        msg.write(body);
-        byte[] handshake = msg.toByteArray();
+        byte[] bodyBytes = body.toByteArray();
 
+        // --- handshake message: type(1) + len(3) + body ---
+        ByteArrayOutputStream hs = new ByteArrayOutputStream();
+        hs.write(0x01);                               // client_hello
+        hs.write((bodyBytes.length >> 16) & 0xFF);
+        hs.write((bodyBytes.length >> 8) & 0xFF);
+        hs.write(bodyBytes.length & 0xFF);
+        hs.write(bodyBytes);
+        byte[] handshake = hs.toByteArray();
+
+        // --- TLS record: type(0x16) + ver(0x0301) + len(2) + handshake ---
         ByteArrayOutputStream rec = new ByteArrayOutputStream();
-        rec.write(0x16);
-        rec.write(0x03);
-        rec.write(0x01);                              // record: handshake, legacy version
-        rec.write((handshake.length >> 8) & 0xFF);
-        rec.write(handshake.length & 0xFF);
+        rec.write(0x16); rec.write(0x03); rec.write(0x01);
+        writeU16(rec, handshake.length);
         rec.write(handshake);
         byte[] record = rec.toByteArray();
 
-        // ponytail DEBUG-NODE 1 (HMAC scope): digest over the WHOLE record with zeroed random at
-        // offset 11. If nothing matches on ground truth, first thing to try is a different scope.
+        // === HMAC по ВСЕМУ record с обнулённым random (позиция 11) ===
+        // random уже нулевой (мы записали new byte[32]), так что record как есть.
         Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(key, "HmacSHA256"));
+        mac.init(new SecretKeySpec(secret, "HmacSHA256"));
         byte[] digest = mac.doFinal(record);
 
-        // ponytail DEBUG-NODE 2 (timestamp XOR, byte order): last 4 bytes XOR unix time, big-endian.
-        // If proxies answer but get flagged dead, try little-endian or drop the XOR.
-        // int now = (int) (System.currentTimeMillis() / 1000L);
-        // digest[28] ^= (byte) (now >>> 24);
-        // digest[29] ^= (byte) (now >>> 16);
-        // digest[30] ^= (byte) (now >>> 8);
-        // digest[31] ^= (byte) now;
+        // === timestamp: последние 4 байта XOR unix-time, LITTLE-endian ===
+        int now = (int) (System.currentTimeMillis() / 1000L);
+        digest[28] ^= (byte) (now >>> 24);
+        digest[29] ^= (byte) (now >>> 16);
+        digest[30] ^= (byte) (now >>> 8);
+        digest[31] ^= (byte) now;
 
-        System.arraycopy(digest, 0, record, 11, 32);  // digest -> random (offset 11)
+        // кладём digest в random (позиция 11 = 5 record header + 1 type + 3 len + 2 version)
+        System.arraycopy(digest, 0, record, 11, 32);
+        log.debug("FakeTLS ClientHello len={}", record.length);
         return record;
     }
 
-    private byte[] buildExtensions(String domain) throws IOException {
+    private byte[] buildExtensions(String domain) throws Exception {
         ByteArrayOutputStream ext = new ByteArrayOutputStream();
-        byte[] host = domain.getBytes(StandardCharsets.US_ASCII);
-        int nameLen = host.length;
+
         // SNI (0x0000)
-        ext.write(0x00);
-        ext.write(0x00);
-        int extData = nameLen + 5, listLen = nameLen + 3;
-        ext.write((extData >> 8) & 0xFF);
-        ext.write(extData & 0xFF);
-        ext.write((listLen >> 8) & 0xFF);
-        ext.write(listLen & 0xFF);
-        ext.write(0x00);                              // host_name
-        ext.write((nameLen >> 8) & 0xFF);
-        ext.write(nameLen & 0xFF);
+        byte[] host = domain.getBytes(StandardCharsets.US_ASCII);
+        ext.write(new byte[]{0x00, 0x00});
+        writeU16(ext, host.length + 5);
+        writeU16(ext, host.length + 3);
+        ext.write(0x00);                              // host_name type
+        writeU16(ext, host.length);
         ext.write(host);
-        // supported_versions (0x002b) -> TLS 1.3
-        ext.write(new byte[]{0x00, 0x2b, 0x00, 0x03, 0x02, 0x03, 0x04});
+
+        // extended_master_secret (0x0017), empty
+        ext.write(new byte[]{0x00,0x17, 0x00,0x00});
+
         // supported_groups (0x000a) -> x25519
-        ext.write(new byte[]{0x00, 0x0a, 0x00, 0x04, 0x00, 0x02, 0x00, 0x1d});
-        return ext.toByteArray();
+        ext.write(new byte[]{0x00,0x0a, 0x00,0x04, 0x00,0x02, 0x00,0x1d});
+
+        // ec_point_formats (0x000b)
+        ext.write(new byte[]{0x00,0x0b, 0x00,0x02, 0x01, 0x00});
+
+        // signature_algorithms (0x000d) — минимальный набор
+        ext.write(new byte[]{0x00,0x0d, 0x00,0x08, 0x00,0x06, 0x04,0x03, 0x08,0x04, 0x04,0x01});
+
+        // key_share (0x0033): x25519 + 32-байтный реальный публичный ключ
+        byte[] pub = generateX25519PublicKey();
+        ext.write(new byte[]{0x00,0x33});
+        writeU16(ext, pub.length + 6);
+        writeU16(ext, pub.length + 4);
+        ext.write(new byte[]{0x00,0x1d});
+        writeU16(ext, pub.length);
+        ext.write(pub);
+
+        // supported_versions (0x002b) -> TLS 1.3
+        ext.write(new byte[]{0x00,0x2b, 0x00,0x03, 0x02, 0x03,0x04});
+
+        // --- padding (0x0015) до общей длины record >= 517 ---
+        // считаем текущую полную длину record: 5(hdr)+4(hs hdr)+2(ver)+32(rnd)+1+32(sid)
+        //   +2+ciphers(30)+2(comp) + 2(ext total) + ext.size()
+        byte[] extSoFar = ext.toByteArray();
+        int fixedBeforeExt = 5 + 4 + 2 + 32 + 1 + 32 + 2 + 30 + 2 + 2;
+        int current = fixedBeforeExt + extSoFar.length;
+        int target = 517;
+        if (current < target) {
+            int padLen = target - current - 4;        // -4 на заголовок самого padding-ext
+            if (padLen < 0) padLen = 0;
+            ByteArrayOutputStream withPad = new ByteArrayOutputStream();
+            withPad.write(extSoFar);
+            withPad.write(new byte[]{0x00,0x15});     // padding ext
+            writeU16(withPad, padLen);
+            withPad.write(new byte[padLen]);
+            return withPad.toByteArray();
+        }
+        return extSoFar;
+    }
+
+    private byte[] generateX25519PublicKey() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("X25519");
+        XECPublicKey pub = (XECPublicKey) kpg.generateKeyPair().getPublic();
+        byte[] be = pub.getU().toByteArray();          // big-endian, возможно с ведущим 0x00
+        byte[] raw = new byte[32];                     // x25519 wire = little-endian, 32 байта
+        for (int i = 0; i < be.length && i < 32; i++)
+            raw[i] = be[be.length - 1 - i];            // reverse to little-endian
+        return raw;
     }
 
     private CryptoSession openObfuscatedSession(Socket socket, byte[] secret) throws Exception {
@@ -486,4 +541,6 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             return decryptCipher.update(value);
         }
     }
+
+    private void writeU16(ByteArrayOutputStream o, int v) { o.write((v >> 8) & 0xFF); o.write(v & 0xFF); }
 }
