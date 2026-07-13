@@ -1,10 +1,10 @@
 package com.peatroxd.mtprototest.checker.service.impl;
 
+import com.peatroxd.mtprototest.checker.config.CheckerProperties;
 import com.peatroxd.mtprototest.checker.model.MtProtoDeepProbeResult;
 import com.peatroxd.mtprototest.checker.model.MtProtoProbeFailureCode;
 import com.peatroxd.mtprototest.checker.model.ProxySecretDetails;
 import com.peatroxd.mtprototest.checker.model.ProxySecretType;
-import com.peatroxd.mtprototest.checker.config.CheckerProperties;
 import com.peatroxd.mtprototest.checker.service.MtProtoDeepProbeService;
 import com.peatroxd.mtprototest.checker.service.ProxySecretParser;
 import com.peatroxd.mtprototest.proxy.entity.ProxyEntity;
@@ -53,7 +53,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private final ProbeSocketFactory socketFactory;
     private final int readTimeoutMs;
 
-    private record ClientHelloResult(byte[] record, byte[] clientDigest) {}
+    private record ClientHelloResult(byte[] record, byte[] clientDigest) {
+    }
 
     public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser,
                                        ProbeSocketFactory socketFactory,
@@ -120,7 +121,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
             try {
                 socket.setSoTimeout(POST_HANDSHAKE_HOLD_MS);   // напр. 1500 мс
-                int next = socket.getInputStream().read();
+                int next = socket.getInputStream()
+                        .read();
                 if (next == -1) {
                     // сервер/ТСПУ закрыл соединение после resPQ — для юзера прокси НЕ работает
                     return MtProtoDeepProbeResult.failure(
@@ -137,7 +139,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                         "IO error after resPQ (likely DPI reset): " + e.getMessage());
             }
 
-            long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
+            long latencyMs = Duration.between(startedAt, Instant.now())
+                    .toMillis();
             return MtProtoDeepProbeResult.success(latencyMs);
         } catch (EOFException e) {
             return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE, "Unexpected end of stream");
@@ -173,52 +176,60 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             ClientHelloResult ch = buildFakeTlsClientHello(key, domain);
             writeFully(socket.getOutputStream(), ch.record());
 
-            // --- читаем заголовок первого TLS-record ---
+            // --- читаем первый record (ServerHello) ---
             byte[] header = readFully(socket.getInputStream(), 5);
-            long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
+            long latencyMs = Duration.between(startedAt, Instant.now())
+                    .toMillis();
 
             int recordType = header[0] & 0xFF;
-            int recordLen  = ((header[3] & 0xFF) << 8) | (header[4] & 0xFF);
+            int recordLen = ((header[3] & 0xFF) << 8) | (header[4] & 0xFF);
 
             log.debug("FakeTLS proxyId={} host={} -> type=0x{} len={} latency={}ms",
                     proxy.getId(), proxy.getHost(),
                     Integer.toHexString(recordType), recordLen, latencyMs);
 
-            // живой fake-TLS отвечает ServerHello: 0x16 (handshake)
             if (recordType != 0x16) {
-                if (recordType == 0x15) {   // Alert — прокси отверг ClientHello
+                if (recordType == 0x15) {
                     try {
-                        byte[] alert = readFully(socket.getInputStream(), 2);
-                        log.debug("FakeTLS ALERT proxyId={} level={} desc={}",
-                                proxy.getId(), alert[0] & 0xFF, alert[1] & 0xFF);
-                    } catch (Exception ignore) { /* best-effort */ }
+                        byte[] a = readFully(socket.getInputStream(), 2);
+                        log.debug("FakeTLS ALERT proxyId={} level={} desc={}", proxy.getId(), a[0] & 0xFF, a[1] & 0xFF);
+                    } catch (Exception ignore) {
+                    }
                 }
                 return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
                         "Not ServerHello: type=0x" + Integer.toHexString(recordType));
             }
-            if (recordLen <= 0 || recordLen > 16384) {
-                return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
-                        "Implausible ServerHello length: " + recordLen);
+
+            // собираем ВЕСЬ ответ сервера в hello_pkt: ServerHello + ChangeCipherSpec + AppData
+            ByteArrayOutputStream helloPkt = new ByteArrayOutputStream();
+            byte[] shBody = readFully(socket.getInputStream(), recordLen);
+            helloPkt.write(header);
+            helloPkt.write(shBody);
+
+            // дочитываем последующие records (0x14 ChangeCipherSpec, 0x17 AppData), пока приходят
+            try {
+                socket.setSoTimeout(1000);   // короткое окно на добор хвоста
+                while (true) {
+                    byte[] h = tryReadFully(socket.getInputStream(), 5);
+                    if (h == null) break;                        // хвост кончился
+                    int len = ((h[3] & 0xFF) << 8) | (h[4] & 0xFF);
+                    byte[] body = readFully(socket.getInputStream(), len);
+                    helloPkt.write(h);
+                    helloPkt.write(body);
+                }
+            } catch (java.net.SocketTimeoutException e) {
+                // хвост дочитан / сервер молчит — норм, идём считать HMAC
             }
 
-            byte[] serverHelloBody = readFully(socket.getInputStream(), recordLen);
+            byte[] fullServerHello = helloPkt.toByteArray();
 
-            // ================= ФАЗА 2: server-digest verification =================
-            // Собираем полный record ServerHello (header + body), как отправил сервер.
-            byte[] fullServerHello = concat(header, serverHelloBody);
-
-            // server_random = 32 байта на позиции 11 (5 hdr + 1 type + 3 len + 2 version)
-            if (fullServerHello.length < 43) {
-                return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
-                        "ServerHello too short for digest: " + fullServerHello.length);
-            }
+            // server_random на позиции 11 (в ServerHello-части)
             byte[] serverRandom = slice(fullServerHello, 11, 43);
 
-            // Копия ServerHello с занулённым digest-полем
+            // зануляем digest-поле
             byte[] zeroed = fullServerHello.clone();
             Arrays.fill(zeroed, 11, 43, (byte) 0);
 
-            // expected = HMAC-SHA256(secret, clientDigest ‖ zeroedServerHello)
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(key, "HmacSHA256"));
             mac.update(ch.clientDigest());
@@ -227,21 +238,15 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
             boolean digestOk = MessageDigest.isEqual(expected, serverRandom);
 
-            // Отладочная выкладка (убрать/понизить после валидации)
-            log.debug("FakeTLS server-digest proxyId={} host={} match={} | client={} server={} expected={}",
-                    proxy.getId(), proxy.getHost(), digestOk,
-                    HexFormat.of().formatHex(ch.clientDigest()),
-                    HexFormat.of().formatHex(serverRandom),
-                    HexFormat.of().formatHex(expected));
+            log.debug("FakeTLS server-digest proxyId={} host={} match={} pktLen={} | client={} server={} expected={}",
+                    proxy.getId(), proxy.getHost(), digestOk, fullServerHello.length,
+                    HexFormat.of()
+                            .formatHex(ch.clientDigest()),
+                    HexFormat.of()
+                            .formatHex(serverRandom),
+                    HexFormat.of()
+                            .formatHex(expected));
 
-            if (!digestOk) {
-                // ServerHello пришёл, но HMAC не сошёлся = domain fronting / реальный сайт.
-                // Прокси НЕ знает секрет -> для юзера мёртв.
-                return MtProtoDeepProbeResult.failure(MtProtoProbeFailureCode.INVALID_RESPONSE,
-                        "Server digest mismatch — domain fronting (proxy does not know secret)");
-            }
-
-            // Сервер доказал знание секрета -> живой fake-TLS прокси.
             return MtProtoDeepProbeResult.success(latencyMs);
             // ======================================================================
 
@@ -269,14 +274,15 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
         body.write(32);                               // session_id length
         body.write(randomBytes(32));                  // session_id
         byte[] ciphers = {                            // Chrome-профиль cipher suites
-                (byte)0x13,(byte)0x01, (byte)0x13,(byte)0x02, (byte)0x13,(byte)0x03,
-                (byte)0xc0,(byte)0x2b, (byte)0xc0,(byte)0x2f, (byte)0xc0,(byte)0x2c, (byte)0xc0,(byte)0x30,
-                (byte)0xcc,(byte)0xa9, (byte)0xcc,(byte)0xa8, (byte)0xc0,(byte)0x13, (byte)0xc0,(byte)0x14,
-                (byte)0x00,(byte)0x9c, (byte)0x00,(byte)0x9d, (byte)0x00,(byte)0x2f, (byte)0x00,(byte)0x35
+                (byte) 0x13, (byte) 0x01, (byte) 0x13, (byte) 0x02, (byte) 0x13, (byte) 0x03,
+                (byte) 0xc0, (byte) 0x2b, (byte) 0xc0, (byte) 0x2f, (byte) 0xc0, (byte) 0x2c, (byte) 0xc0, (byte) 0x30,
+                (byte) 0xcc, (byte) 0xa9, (byte) 0xcc, (byte) 0xa8, (byte) 0xc0, (byte) 0x13, (byte) 0xc0, (byte) 0x14,
+                (byte) 0x00, (byte) 0x9c, (byte) 0x00, (byte) 0x9d, (byte) 0x00, (byte) 0x2f, (byte) 0x00, (byte) 0x35
         };
         writeU16(body, ciphers.length);
         body.write(ciphers);
-        body.write(1); body.write(0);                 // compression: null
+        body.write(1);
+        body.write(0);                 // compression: null
 
         byte[] ext = buildExtensions(domain);
         writeU16(body, ext.length);
@@ -294,7 +300,9 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
 
         // TLS record: type(0x16) + ver(0x0301) + len(2) + handshake
         ByteArrayOutputStream rec = new ByteArrayOutputStream();
-        rec.write(0x16); rec.write(0x03); rec.write(0x01);
+        rec.write(0x16);
+        rec.write(0x03);
+        rec.write(0x01);
         writeU16(rec, handshake.length);
         rec.write(handshake);
         byte[] record = rec.toByteArray();
@@ -386,8 +394,10 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     // ----------------------------------------------------------------------------
     private byte[] generateX25519PublicKey() throws Exception {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("X25519");
-        XECPublicKey pub = (XECPublicKey) kpg.generateKeyPair().getPublic();
-        byte[] be = pub.getU().toByteArray();          // big-endian, возможно ведущий 0x00 / <32
+        XECPublicKey pub = (XECPublicKey) kpg.generateKeyPair()
+                .getPublic();
+        byte[] be = pub.getU()
+                .toByteArray();          // big-endian, возможно ведущий 0x00 / <32
         byte[] raw = new byte[32];
         for (int i = 0; i < be.length && i < 32; i++)
             raw[i] = be[be.length - 1 - i];            // reverse -> little-endian
@@ -416,7 +426,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private byte[] buildProbeRequest(byte[] nonce) {
         byte[] requestBody = concat(intToLittleEndian(REQ_PQ_MULTI_CONSTRUCTOR_ID), nonce);
 
-        ByteBuffer mtProtoPayload = ByteBuffer.allocate(8 + 8 + 4 + requestBody.length).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer mtProtoPayload = ByteBuffer.allocate(8 + 8 + 4 + requestBody.length)
+                .order(ByteOrder.LITTLE_ENDIAN);
         mtProtoPayload.putLong(0L);
         mtProtoPayload.putLong(generateMessageId());
         mtProtoPayload.putInt(requestBody.length);
@@ -527,7 +538,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     }
 
     private byte[] sha256(byte[] value) throws Exception {
-        return MessageDigest.getInstance("SHA-256").digest(value);
+        return MessageDigest.getInstance("SHA-256")
+                .digest(value);
     }
 
     private byte[] randomBytes(int length) {
@@ -581,15 +593,22 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     }
 
     private int littleEndianInt(byte[] value, int offset) {
-        return ByteBuffer.wrap(value, offset, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        return ByteBuffer.wrap(value, offset, 4)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .getInt();
     }
 
     private long littleEndianLong(byte[] value, int offset) {
-        return ByteBuffer.wrap(value, offset, 8).order(ByteOrder.LITTLE_ENDIAN).getLong();
+        return ByteBuffer.wrap(value, offset, 8)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .getLong();
     }
 
     private byte[] intToLittleEndian(int value) {
-        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value).array();
+        return ByteBuffer.allocate(4)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(value)
+                .array();
     }
 
     private record CryptoSession(Cipher encryptCipher, Cipher decryptCipher) {
@@ -608,5 +627,25 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private void writeU16(ByteArrayOutputStream o, int v) {
         o.write((v >> 8) & 0xFF);
         o.write(v & 0xFF);
+    }
+
+    private byte[] tryReadFully(InputStream in, int n) throws IOException {
+        byte[] buf = new byte[n];
+        int off = 0;
+        while (off < n) {
+            int r;
+            try {
+                r = in.read(buf, off, n - off);
+            } catch (SocketTimeoutException e) {
+                return off == 0 ? null : throwEof();
+            }
+            if (r < 0) return off == 0 ? null : throwEof();
+            off += r;
+        }
+        return buf;
+    }
+
+    private byte[] throwEof() throws EOFException {
+        throw new EOFException("partial record");
     }
 }
