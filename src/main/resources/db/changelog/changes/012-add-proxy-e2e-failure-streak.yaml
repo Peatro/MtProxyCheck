@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-add-proxy-e2e-failure-streak
+      author: codex
+      changes:
+        - addColumn:
+            tableName: proxies
+            columns:
+              - column:
+                  name: e2e_failure_streak
+                  type: INT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

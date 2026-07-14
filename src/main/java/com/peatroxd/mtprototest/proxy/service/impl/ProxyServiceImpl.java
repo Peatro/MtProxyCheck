@@ -206,8 +206,9 @@ public class ProxyServiceImpl implements ProxyService {
     private int verificationRank(ProxyEntity proxy) {
         return switch (proxy.getVerificationStatus()) {
             case VERIFIED -> 0;
-            case QUICK_OK -> 1;
-            case UNVERIFIED -> 2;
+            case PROTOCOL_OK -> 1;
+            case QUICK_OK -> 2;
+            case UNVERIFIED -> 3;
         };
     }
 }

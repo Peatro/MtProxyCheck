@@ -69,15 +69,15 @@ public class ProxyCheckExecutionServiceImpl implements ProxyCheckExecutionServic
 
         proxyMetricsService.incrementDeepProbeSuccess();
         long latencyMs = deepResult.latencyMs() >= 0 ? deepResult.latencyMs() : quickResult.latencyMs();
-        ProxyCheckResult verifiedResult = new ProxyCheckResult(
+        ProxyCheckResult protocolOkResult = new ProxyCheckResult(
                 true,
                 latencyMs,
-                ProxyVerificationStatus.VERIFIED,
+                ProxyVerificationStatus.PROTOCOL_OK,
                 null,
                 null
         );
-        historyRecords.add(historyRecord(LocalDateTime.now(), ProxyCheckType.DEEP, verifiedResult));
-        return new ProxyCheckExecution(verifiedResult, historyRecords);
+        historyRecords.add(historyRecord(LocalDateTime.now(), ProxyCheckType.DEEP, protocolOkResult));
+        return new ProxyCheckExecution(protocolOkResult, historyRecords);
     }
 
     private ProxyCheckHistoryRecord historyRecord(LocalDateTime checkedAt, ProxyCheckType checkType, ProxyCheckResult result) {

@@ -63,6 +63,14 @@ app:
       enabled: ${APP_CHECKER_SOCKS_ENABLED:false}
       host: ${APP_CHECKER_SOCKS_HOST:127.0.0.1}
       port: ${APP_CHECKER_SOCKS_PORT:1080}
+    tdlib:
+      agent-url: ${APP_CHECKER_TDLIB_AGENT_URL:http://127.0.0.1:8090}
+      interval: ${APP_CHECKER_TDLIB_INTERVAL:60000}
+      batch-limit: ${APP_CHECKER_TDLIB_BATCH_LIMIT:50}
+      concurrency: ${APP_CHECKER_TDLIB_CONCURRENCY:8}
+      recheck-after-ms: ${APP_CHECKER_TDLIB_RECHECK_AFTER_MS:1800000}
+      request-timeout-ms: ${APP_CHECKER_TDLIB_REQUEST_TIMEOUT_MS:20000}
+      health-timeout-ms: ${APP_CHECKER_TDLIB_HEALTH_TIMEOUT_MS:2500}
 
   feedback:
     dedupe-window-minutes: ${APP_FEEDBACK_DEDUPE_WINDOW_MINUTES:60}

@@ -9,7 +9,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 
 @Configuration
-@EnableConfigurationProperties({CheckerExecutorProperties.class, CheckerProperties.class, StartupProperties.class})
+@EnableConfigurationProperties({CheckerExecutorProperties.class, CheckerProperties.class, TdlibProperties.class, StartupProperties.class})
 public class CheckerExecutorConfig {
 
     @Bean
@@ -21,6 +21,21 @@ public class CheckerExecutorConfig {
         executor.setThreadNamePrefix(properties.getThreadNamePrefix());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(properties.getAwaitTerminationSeconds());
+        executor.setAllowCoreThreadTimeOut(true);
+        executor.initialize();
+        return executor;
+    }
+
+    // Выделенный bounded-пул для E2E-пингов: изолирует TDLib-нагрузку от digest-батча.
+    @Bean
+    public Executor tdlibProbeExecutor(TdlibProperties properties) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(properties.getConcurrency());
+        executor.setMaxPoolSize(properties.getConcurrency());
+        executor.setQueueCapacity(properties.getBatchLimit());
+        executor.setThreadNamePrefix("tdlib-probe-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
         executor.setAllowCoreThreadTimeOut(true);
         executor.initialize();
         return executor;

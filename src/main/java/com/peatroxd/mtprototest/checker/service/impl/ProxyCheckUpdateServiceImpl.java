@@ -1,6 +1,7 @@
 package com.peatroxd.mtprototest.checker.service.impl;
 
 import com.peatroxd.mtprototest.checker.entity.ProxyCheckHistoryEntity;
+import com.peatroxd.mtprototest.checker.enums.ProxyCheckType;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckExecution;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckHistoryRecord;
 import com.peatroxd.mtprototest.checker.model.ProxyCheckResult;
@@ -41,17 +42,45 @@ public class ProxyCheckUpdateServiceImpl implements ProxyCheckUpdateService {
 
         saveHistory(proxy, execution.historyRecords());
         applyResult(proxy, execution.finalResult(), latestCheckedAt(execution.historyRecords()));
+        applyScore(proxy);
+
+        proxyRepository.save(proxy);
+        publicCatalogCacheService.evictProxyById(proxyId);
+    }
+
+    @Override
+    @Transactional
+    public void applyE2eResult(Long proxyId, boolean alive, Long latencyMs, String error) {
+        ProxyEntity proxy = proxyRepository.findById(proxyId)
+                .orElseThrow(() -> new IllegalArgumentException("Proxy not found: " + proxyId));
+
+        LocalDateTime now = LocalDateTime.now();
+        applyE2eTransition(proxy, alive, latencyMs, now);
+
+        saveHistory(proxy, List.of(new ProxyCheckHistoryRecord(
+                now,
+                ProxyCheckType.E2E,
+                alive,
+                proxy.getVerificationStatus(),
+                alive && latencyMs != null && latencyMs >= 0 ? latencyMs : null,
+                null,
+                alive ? null : error
+        )));
+        applyScore(proxy);
+
+        proxyRepository.save(proxy);
+        publicCatalogCacheService.evictProxyById(proxyId);
+    }
+
+    private void applyScore(ProxyEntity proxy) {
         proxy.setScore(proxyScoringService.calculateScore(new ProxyScoreContext(
                 proxy,
-                proxyCheckHistoryRepository.findTop20ByProxyIdOrderByCheckedAtDesc(proxyId),
-                proxyFeedbackRepository.findTop20ByProxyIdOrderByCreatedAtDesc(proxyId)
+                proxyCheckHistoryRepository.findTop20ByProxyIdOrderByCheckedAtDesc(proxy.getId()),
+                proxyFeedbackRepository.findTop20ByProxyIdOrderByCreatedAtDesc(proxy.getId())
                         .stream()
                         .limit(feedbackProperties.getRecentLimit())
                         .toList()
         )));
-
-        proxyRepository.save(proxy);
-        publicCatalogCacheService.evictProxyById(proxyId);
     }
 
     private void saveHistory(ProxyEntity proxy, List<ProxyCheckHistoryRecord> historyRecords) {
@@ -79,7 +108,7 @@ public class ProxyCheckUpdateServiceImpl implements ProxyCheckUpdateService {
         if (result.alive()) {
             proxy.setStatus(ProxyStatus.ALIVE);
             proxy.setLastLatencyMs(result.latencyMs());
-            proxy.setVerificationStatus(result.verificationStatus());
+            proxy.setVerificationStatus(resolveDigestVerification(proxy, result));
             proxy.setLastSuccessAt(checkedAt);
             proxy.setConsecutiveSuccesses(safeInt(proxy.getConsecutiveSuccesses()) + 1);
             proxy.setConsecutiveFailures(0);
@@ -91,6 +120,64 @@ public class ProxyCheckUpdateServiceImpl implements ProxyCheckUpdateService {
         proxy.setVerificationStatus(ProxyVerificationStatus.UNVERIFIED);
         proxy.setConsecutiveFailures(safeInt(proxy.getConsecutiveFailures()) + 1);
         proxy.setConsecutiveSuccesses(0);
+    }
+
+    /**
+     * Verification при живом (alive) digest-результате:
+     * - digest прошёл (PROTOCOL_OK): поднимаем до PROTOCOL_OK, но не понижаем уже-VERIFIED;
+     * - digest запускался и упал (QUICK_OK + failureCode): понижаем до QUICK_OK, включая VERIFIED;
+     * - shallow QUICK-only (deep не запускался, failureCode == null): не понижаем достигнутое.
+     */
+    private ProxyVerificationStatus resolveDigestVerification(ProxyEntity proxy, ProxyCheckResult result) {
+        ProxyVerificationStatus current = proxy.getVerificationStatus();
+        ProxyVerificationStatus res = result.verificationStatus();
+
+        if (res == ProxyVerificationStatus.PROTOCOL_OK) {
+            return current == ProxyVerificationStatus.VERIFIED
+                    ? ProxyVerificationStatus.VERIFIED
+                    : ProxyVerificationStatus.PROTOCOL_OK;
+        }
+        if (res == ProxyVerificationStatus.QUICK_OK && result.failureCode() != null) {
+            return ProxyVerificationStatus.QUICK_OK;
+        }
+        return higherOf(current, res);
+    }
+
+    private void applyE2eTransition(ProxyEntity proxy, boolean alive, Long latencyMs, LocalDateTime now) {
+        proxy.setLastCheckedAt(now);
+
+        if (alive) {
+            // OK: PROTOCOL_OK -> VERIFIED (промоушен); VERIFIED -> VERIFIED (переподтверждён)
+            proxy.setVerificationStatus(ProxyVerificationStatus.VERIFIED);
+            proxy.setLastSuccessAt(now);
+            if (latencyMs != null && latencyMs >= 0) {
+                proxy.setLastLatencyMs(latencyMs);
+            }
+            proxy.setE2eFailureStreak(0);
+            return;
+        }
+
+        int streak = safeInt(proxy.getE2eFailureStreak()) + 1;
+        proxy.setE2eFailureStreak(streak);
+
+        // Пороги через >= + guard по текущему статусу: самокорректируется, если порог «проскочили»
+        // (следующий фейл поймает по статусу), и понижает только с ожидаемого статуса.
+        if (streak >= 5 && proxy.getVerificationStatus() == ProxyVerificationStatus.PROTOCOL_OK) {
+            // устойчиво мёртвый по E2E — вычистка; digest-retry подхватит позже
+            proxy.setStatus(ProxyStatus.DEAD);
+            proxy.setVerificationStatus(ProxyVerificationStatus.UNVERIFIED);
+            proxy.setLastLatencyMs(null);
+            proxy.setE2eFailureStreak(0);
+        } else if (streak >= 3 && proxy.getVerificationStatus() == ProxyVerificationStatus.VERIFIED) {
+            proxy.setVerificationStatus(ProxyVerificationStatus.PROTOCOL_OK);
+        }
+        // иначе статус держим (буфер от флапа ТСПУ), score ползёт вниз через e2eFailureStreak
+    }
+
+    private ProxyVerificationStatus higherOf(ProxyVerificationStatus a, ProxyVerificationStatus b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a.ordinal() >= b.ordinal() ? a : b;
     }
 
     private LocalDateTime latestCheckedAt(List<ProxyCheckHistoryRecord> historyRecords) {

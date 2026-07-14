@@ -76,6 +76,9 @@ public class ProxyEntity {
     @Column(name = "consecutive_successes", nullable = false)
     private Integer consecutiveSuccesses;
 
+    @Column(name = "e2e_failure_streak", nullable = false)
+    private Integer e2eFailureStreak;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -108,6 +111,9 @@ public class ProxyEntity {
         }
         if (consecutiveSuccesses == null) {
             consecutiveSuccesses = 0;
+        }
+        if (e2eFailureStreak == null) {
+            e2eFailureStreak = 0;
         }
     }
 

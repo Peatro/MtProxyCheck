@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/changes/010-alter-proxy-segment-stats-add-composite-columns.yaml
   - include:
       file: db/changelog/changes/011-create-proxy-session-signals.yaml
+  - include:
+      file: db/changelog/changes/012-add-proxy-e2e-failure-streak.yaml
