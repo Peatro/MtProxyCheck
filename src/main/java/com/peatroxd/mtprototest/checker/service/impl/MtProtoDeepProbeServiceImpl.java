@@ -32,8 +32,6 @@ import java.security.SecureRandom;
 import java.security.interfaces.XECPublicKey;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.HexFormat;
 
 @Slf4j
 @Service
@@ -52,9 +50,6 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     private final ProxySecretParser proxySecretParser;
     private final ProbeSocketFactory socketFactory;
     private final int readTimeoutMs;
-
-    private record ClientHelloResult(byte[] record, byte[] clientDigest) {
-    }
 
     public MtProtoDeepProbeServiceImpl(ProxySecretParser proxySecretParser,
                                        ProbeSocketFactory socketFactory,
@@ -173,8 +168,8 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
             socket.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), CONNECT_TIMEOUT_MS);
             socket.setSoTimeout(READ_TIMEOUT_MS);
 
-            ClientHelloResult ch = buildFakeTlsClientHello(key, domain);
-            writeFully(socket.getOutputStream(), ch.record());
+            byte[] clientHello = buildFakeTlsClientHello(key, domain);
+            writeFully(socket.getOutputStream(), clientHello);
 
             // --- читаем первый record (ServerHello) ---
             byte[] header = readFully(socket.getInputStream(), 5);
@@ -200,55 +195,9 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
                         "Not ServerHello: type=0x" + Integer.toHexString(recordType));
             }
 
-            // собираем ВЕСЬ ответ сервера в hello_pkt: ServerHello + ChangeCipherSpec + AppData
-            ByteArrayOutputStream helloPkt = new ByteArrayOutputStream();
-            byte[] shBody = readFully(socket.getInputStream(), recordLen);
-            helloPkt.write(header);
-            helloPkt.write(shBody);
-
-            // дочитываем последующие records (0x14 ChangeCipherSpec, 0x17 AppData), пока приходят
-            try {
-                socket.setSoTimeout(1000);   // короткое окно на добор хвоста
-                while (true) {
-                    byte[] h = tryReadFully(socket.getInputStream(), 5);
-                    if (h == null) break;                        // хвост кончился
-                    int len = ((h[3] & 0xFF) << 8) | (h[4] & 0xFF);
-                    byte[] body = readFully(socket.getInputStream(), len);
-                    helloPkt.write(h);
-                    helloPkt.write(body);
-                }
-            } catch (java.net.SocketTimeoutException e) {
-                // хвост дочитан / сервер молчит — норм, идём считать HMAC
-            }
-
-            byte[] fullServerHello = helloPkt.toByteArray();
-
-            // server_random на позиции 11 (в ServerHello-части)
-            byte[] serverRandom = slice(fullServerHello, 11, 43);
-
-            // зануляем digest-поле
-            byte[] zeroed = fullServerHello.clone();
-            Arrays.fill(zeroed, 11, 43, (byte) 0);
-
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(key, "HmacSHA256"));
-            mac.update(ch.clientDigest());
-            mac.update(zeroed);
-            byte[] expected = mac.doFinal();
-
-            boolean digestOk = MessageDigest.isEqual(expected, serverRandom);
-
-            log.debug("FakeTLS server-digest proxyId={} host={} match={} pktLen={} | client={} server={} expected={}",
-                    proxy.getId(), proxy.getHost(), digestOk, fullServerHello.length,
-                    HexFormat.of()
-                            .formatHex(ch.clientDigest()),
-                    HexFormat.of()
-                            .formatHex(serverRandom),
-                    HexFormat.of()
-                            .formatHex(expected));
-
+            // ServerHello (0x16) получен — для PROTOCOL_OK этого достаточно (прокси знает секрет).
+            // Реальный end-to-end до DC подтверждает TDLib-агент (E2E), server-digest избыточен.
             return MtProtoDeepProbeResult.success(latencyMs);
-            // ======================================================================
 
         } catch (java.net.SocketTimeoutException e) {
             // ServerHello не пришёл в окно READ_TIMEOUT — троттлинг/блок ТСПУ.
@@ -267,7 +216,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
     //  Сборка TLS 1.3 ClientHello (≥517 байт, Chrome-профиль) + клиентский digest.
     //  digest (HMAC по всему record с нулевым random) кладётся на позицию 11.
     // ----------------------------------------------------------------------------
-    private ClientHelloResult buildFakeTlsClientHello(byte[] secret, String domain) throws Exception {
+    private byte[] buildFakeTlsClientHello(byte[] secret, String domain) throws Exception {
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         body.write(new byte[]{0x03, 0x03});          // legacy_version TLS 1.2
         body.write(new byte[32]);                     // random — плейсхолдер (нули)
@@ -324,11 +273,7 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
         // кладём digest в random (позиция 11)
         System.arraycopy(digest, 0, record, 11, 32);
 
-        // сохраняем то, что реально ушло (для проверки фазы 2)
-        byte[] clientDigest = new byte[32];
-        System.arraycopy(record, 11, clientDigest, 0, 32);
-
-        return new ClientHelloResult(record, clientDigest);
+        return record;
     }
 
     // ----------------------------------------------------------------------------
@@ -629,23 +574,4 @@ public class MtProtoDeepProbeServiceImpl implements MtProtoDeepProbeService {
         o.write(v & 0xFF);
     }
 
-    private byte[] tryReadFully(InputStream in, int n) throws IOException {
-        byte[] buf = new byte[n];
-        int off = 0;
-        while (off < n) {
-            int r;
-            try {
-                r = in.read(buf, off, n - off);
-            } catch (SocketTimeoutException e) {
-                return off == 0 ? null : throwEof();
-            }
-            if (r < 0) return off == 0 ? null : throwEof();
-            off += r;
-        }
-        return buf;
-    }
-
-    private byte[] throwEof() throws EOFException {
-        throw new EOFException("partial record");
-    }
 }

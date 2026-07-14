@@ -93,6 +93,25 @@ public interface ProxyRepository extends JpaRepository<ProxyEntity, Long>, JpaSp
             Pageable pageable
     );
 
+    @Query("""
+            select p from ProxyEntity p
+            where p.status = com.peatroxd.mtprototest.proxy.enums.ProxyStatus.ALIVE
+              and p.moderationStatus <> com.peatroxd.mtprototest.proxy.enums.ProxyModerationStatus.BLACKLISTED
+              and p.verificationStatus = com.peatroxd.mtprototest.proxy.enums.ProxyVerificationStatus.PROTOCOL_OK
+            order by p.lastCheckedAt asc nulls first, p.id asc
+            """)
+    List<ProxyEntity> findE2ePromotionCandidates(Pageable pageable);
+
+    @Query("""
+            select p from ProxyEntity p
+            where p.status = com.peatroxd.mtprototest.proxy.enums.ProxyStatus.ALIVE
+              and p.moderationStatus <> com.peatroxd.mtprototest.proxy.enums.ProxyModerationStatus.BLACKLISTED
+              and p.verificationStatus = com.peatroxd.mtprototest.proxy.enums.ProxyVerificationStatus.VERIFIED
+              and (p.lastCheckedAt is null or p.lastCheckedAt <= :recheckBefore)
+            order by p.lastCheckedAt asc nulls first, p.id asc
+            """)
+    List<ProxyEntity> findE2eRecheckCandidates(LocalDateTime recheckBefore, Pageable pageable);
+
     long countByStatus(ProxyStatus status);
 
     long countByVerificationStatus(ProxyVerificationStatus verificationStatus);

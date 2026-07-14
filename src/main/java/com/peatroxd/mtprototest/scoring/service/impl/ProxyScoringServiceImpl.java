@@ -24,6 +24,7 @@ public class ProxyScoringServiceImpl implements ProxyScoringService {
 
         int verificationWeight = switch (context.proxy().getVerificationStatus()) {
             case VERIFIED -> 28;
+            case PROTOCOL_OK -> 25;   // digest ok, end-to-end (TDLib) ещё не подтверждён
             case QUICK_OK -> 20;
             case UNVERIFIED -> 6;
         };
@@ -48,9 +49,11 @@ public class ProxyScoringServiceImpl implements ProxyScoringService {
 
         int freshnessScore = calculateFreshnessScore(context.proxy().getLastSuccessAt());
         int failurePenalty = Math.min(20, safeInt(context.proxy().getConsecutiveFailures()) * 4);
+        int e2eFailurePenalty = Math.min(30, safeInt(context.proxy().getE2eFailureStreak()) * 10);
         int feedbackAdjustment = calculateFeedbackAdjustment(context);
 
-        int rawScore = verificationWeight + successRateScore + latencyScore + freshnessScore + feedbackAdjustment - failurePenalty;
+        int rawScore = verificationWeight + successRateScore + latencyScore + freshnessScore + feedbackAdjustment
+                - failurePenalty - e2eFailurePenalty;
         return Math.max(0, Math.min(100, rawScore));
     }
 

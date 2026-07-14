@@ -85,6 +85,10 @@ public class ProxyMetricsService {
         meterRegistry.counter("proxy.deep_probe.total", "outcome", "failure", "failure_code", tagValue).increment();
     }
 
+    public void incrementE2eCheck(boolean success) {
+        meterRegistry.counter("proxy.e2e_check.total", "outcome", success ? "success" : "failure").increment();
+    }
+
     public void incrementFeedbackSubmitted(ProxyFeedbackPlatform platform, ProxyFeedbackResult result) {
         meterRegistry.counter(
                 "proxy.feedback.submitted.total",
