@@ -70,6 +70,18 @@ public class ProxyPingAgentClient {
         }
     }
 
+    public EgressInfo egress() {
+        try {
+            return healthClient.get()
+                    .uri("/egress")
+                    .retrieve()
+                    .body(EgressInfo.class);
+        } catch (Exception e) {
+            log.debug("Egress check failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
     record PingRequest(String host, int port, String secret) {
     }
 
@@ -79,5 +91,9 @@ public class ProxyPingAgentClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record HealthResponse(boolean ok) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record EgressInfo(String ip, String country) {
     }
 }

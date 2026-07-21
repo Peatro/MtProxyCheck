@@ -139,4 +139,7 @@ public interface ProxyRepository extends JpaRepository<ProxyEntity, Long>, JpaSp
             LocalDateTime staleBefore,
             LocalDateTime updatedAt
     );
+
+    @Query("select max(p.lastCheckedAt) from ProxyEntity p")
+    LocalDateTime findMaxLastCheckedAt();
 }

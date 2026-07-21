@@ -51,6 +51,7 @@ app:
     alive-quick-ok-recheck-after-ms: ${APP_CHECKER_ALIVE_QUICK_OK_RECHECK_AFTER_MS:300000}
     alive-verified-recheck-after-ms: ${APP_CHECKER_ALIVE_VERIFIED_RECHECK_AFTER_MS:1800000}
     dead-retry-after-ms: ${APP_CHECKER_DEAD_RETRY_AFTER_MS:21600000}
+    freshness-threshold-seconds: ${APP_CHECKER_FRESHNESS_THRESHOLD_SECONDS:600}
     executor:
       core-pool-size: ${APP_CHECKER_EXECUTOR_CORE_POOL_SIZE:16}
       max-pool-size: ${APP_CHECKER_EXECUTOR_MAX_POOL_SIZE:32}
@@ -155,6 +156,3 @@ proxy:
         url: https://raw.githubusercontent.com/ALIILAPRO/MTProtoProxy/main/mtproto.txt
         format: TELEGRAM_TEXT
         enabled: true
-logging:
-  level:
-    com.peatroxd.mtprototest.checker.service.impl.MtProtoDeepProbeServiceImpl: DEBUG
